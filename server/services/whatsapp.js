@@ -329,7 +329,7 @@ Show this help message.`;
         const month = normalizationService.normalizeMonth(monthInput);
         const year = new Date().getFullYear();
         const variants = [senderId, senderId.replace('@c.us', '@lid'), senderId.replace('@lid', '@c.us')];
-        const phoneSuffix = phone.length >= 9 ? phone.slice(-9) : phone;
+        const phoneSuffix = (phone && phone.length >= 9) ? phone.slice(-9) : (phone || '');
 
         const student = await dbGet(`
           SELECT * FROM students 
@@ -387,7 +387,7 @@ Show this help message.`;
         const month = normalizationService.normalizeMonth(monthInput);
         const year = new Date().getFullYear();
         
-        const phoneSuffix = phone.length >= 9 ? phone.slice(-9) : phone;
+        const phoneSuffix = (phone && phone.length >= 9) ? phone.slice(-9) : (phone || '');
         const student = await dbGet(`SELECT id, name, whatsapp_id, phone FROM students WHERE normalized_phone = ? OR whatsapp_id LIKE ?`, [normalizedActual, '%' + phone]);
 
         if (student) {
@@ -447,7 +447,7 @@ Show this help message.`;
                 
                 if (!student) {
                   const cleanPhone = actualPhone.replace(/\D/g, '');
-                  const suffix = cleanPhone.length >= 9 ? cleanPhone.slice(-9) : cleanPhone;
+                  const suffix = (cleanPhone && cleanPhone.length >= 9) ? cleanPhone.slice(-9) : (cleanPhone || '');
                   student = await dbGet('SELECT id, name FROM students WHERE phone LIKE ? OR phone LIKE ?', [`%${suffix}`, `%${cleanPhone}`]);
                 }
 
@@ -486,7 +486,7 @@ Show this help message.`;
 
       const phoneOnly = actualPhone.split('@')[0];
       const normalizedActual = normalizationService.normalizePhone(phoneOnly);
-      const phoneSuffix = phoneOnly.length >= 9 ? phoneOnly.slice(-9) : phoneOnly;
+      const phoneSuffix = (phoneOnly && phoneOnly.length >= 9) ? phoneOnly.slice(-9) : (phoneOnly || '');
       const variants = [senderId, senderId.replace('@c.us', '@lid'), senderId.replace('@lid', '@c.us')];
       
       let student = await dbGet(`
@@ -542,7 +542,11 @@ Show this help message.`;
       const normalizedGrade = normalizationService.normalizeGrade(grade);
       const studentPhone = data.contact || data.phone || actualPhone;
       const formattedPhone = normalizationService.normalizePhone(studentPhone);
+      if (!formattedPhone) {
+        throw new Error('Invalid phone number provided');
+      }
       const phoneSuffix = formattedPhone.length >= 9 ? formattedPhone.slice(-9) : formattedPhone;
+
       const variants = [senderId, senderId.replace('@c.us', '@lid'), senderId.replace('@lid', '@c.us')];
 
       const studentByWa = await dbGet(`SELECT * FROM students WHERE whatsapp_id IN (?, ?, ?)`, variants);
