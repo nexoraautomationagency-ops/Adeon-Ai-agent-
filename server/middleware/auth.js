@@ -29,12 +29,24 @@ async function authMiddleware(req, res, next) {
     const decoded = jwt.verify(tokenSource, JWT_SECRET);
     // Fix Bug 60: Real-time role check (prevents stale tokens from blocking role changes)
     const { dbGet } = require('../db/connection');
-    const actualTutor = await dbGet('SELECT id, email, role, institute_name FROM tutors WHERE id = ?', [decoded.id]);
+    const actualTutor = await dbGet('SELECT id, email, role, institute_name, parent_tutor_id FROM tutors WHERE id = ?', [decoded.id]);
+
     
     if (!actualTutor) throw new Error('Tutor no longer exists');
     
-    req.tutor = actualTutor;
+    // Support for Staff/Mirror accounts
+    // If this account has a parent, use the parent's ID for all data queries
+    if (actualTutor.parent_tutor_id) {
+      req.tutor = { 
+        ...actualTutor, 
+        id: actualTutor.parent_tutor_id, // Override ID with parent ID
+        staff_id: actualTutor.id         // Keep original ID for logs
+      };
+    } else {
+      req.tutor = actualTutor;
+    }
     next();
+
   } catch (err) {
     return res.status(401).json({ error: 'Invalid, expired, or stale token' });
   }
