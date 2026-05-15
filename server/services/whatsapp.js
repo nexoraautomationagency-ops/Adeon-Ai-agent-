@@ -116,9 +116,12 @@ class WhatsAppService extends EventEmitter {
             '--no-default-browser-check',
             '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
           ],
-          executablePath: process.env.NODE_ENV === 'production' ? '/usr/bin/google-chrome-stable' : undefined
+          executablePath: process.env.NODE_ENV === 'production' 
+            ? (fs.existsSync('/usr/bin/google-chrome-stable') ? '/usr/bin/google-chrome-stable' : '/usr/bin/chromium-browser') 
+            : undefined
         }
       });
+
 
       this.client.on('remote_session_saved', () => {
         console.log('[WhatsApp] ✅ Session backed up to Supabase');
