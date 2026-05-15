@@ -341,16 +341,16 @@ Return STRICT JSON ONLY:
       // AGGRESSIVE SHORT-CIRCUIT: Tute Confirmation & Details
       const lowPrompt = prompt.toLowerCase();
       const isDetailRequest = (lowPrompt.includes('detail') || lowPrompt.includes('fees') || lowPrompt.includes('keeyada') || lowPrompt.includes('denna') || (lowPrompt.includes('mata') && lowPrompt.includes('ona')));
-      const isDeliveryConfirm = (lowPrompt.includes('labuna') || lowPrompt.includes('laba') || lowPrompt.includes('received') || lowPrompt.includes('badu') || lowPrompt.includes('awa'));
+      const isDeliveryConfirm = (lowPrompt.includes('labuna') || lowPrompt.includes('laba') || lowPrompt.includes('hambuna') || lowPrompt.includes('hambana') || lowPrompt.includes('received') || lowPrompt.includes('badu') || lowPrompt.includes('awa'));
 
       if (isDeliveryConfirm) {
-          return {
-            text: "Super! 😊 Tute එක ලැබුණා කියලා සතුටුයි. ඔයාට තවත් කුමක් හෝ අවශ්යද?",
-            intent: 'CONFIRM_DELIVERY',
-            command: 'CONFIRM_DELIVERY',
-            action: 'CONFIRM_DELIVERY',
-            data: {}
-          };
+        return {
+          text: "Tute එක ලැබුණා කියලා confirm කරාට thanks. ඔයාට තවත් help එකක් ඕනේ නම් ඕනෙම වෙලාවක message කරන්න 👍",
+          intent: 'CONFIRM_DELIVERY',
+          command: 'CONFIRM_DELIVERY',
+          action: 'CONFIRM_DELIVERY',
+          data: {}
+        };
       }
 
       if (isDetailRequest && !prompt.includes('join')) {
