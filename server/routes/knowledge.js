@@ -7,9 +7,9 @@ const { developerOnly } = require('../middleware/auth');
 /**
  * GET all knowledge facts
  */
-router.get('/facts', async (req, res) => {
-  // Allow tutors to view, but only developers/admins can edit
+router.get('/facts', developerOnly, async (req, res) => {
   const tutorId = req.tutor.id;
+
   try {
     const { data, error } = await supabase
       .from('knowledge_base')
@@ -105,7 +105,8 @@ router.post('/facts', async (req, res) => {
 /**
  * GET all training examples (Few-Shot)
  */
-router.get('/examples', async (req, res) => {
+router.get('/examples', developerOnly, async (req, res) => {
+
   try {
     const examples = await dbAll('SELECT * FROM knowledge_examples WHERE tutor_id = ? ORDER BY id DESC', [req.tutor.id]);
 
