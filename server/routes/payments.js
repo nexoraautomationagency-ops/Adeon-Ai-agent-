@@ -62,16 +62,26 @@ async function handlePaymentSuccess(tutor, paymentId, studentId, month, year) {
     const whatsappService = require('../services/whatsapp');
     
     // Add to group first
+    let groupAdded = false;
+    let groupName = 'their class group';
     try {
-        await whatsappService.syncStudentToMonthlyGroup(student.id, month, year);
+        groupAdded = await whatsappService.syncStudentToMonthlyGroup(student.id, month, year);
+        // Try to get the actual group name for the admin notification
+        const { dbGet: dg } = require('../db/connection');
+        const grp = await dg(`SELECT name FROM whatsapp_groups WHERE grade = ? AND (month IS NULL OR month = ?) LIMIT 1`, [student.grade, month]);
+        if (grp?.name) groupName = grp.name;
     } catch (e) {
         console.error('[Automation] Group sync failed:', e.message);
     }
 
-    const target = student.whatsapp_id || student.phone;
-    if (target) {
-        const msg = `Your payment for ${month} has been approved! You have been added to your class group. Welcome! ✅`;
-        await whatsappService.sendToPhone(target, msg);
+    // Notify ADMIN only — student does NOT get a message
+    try {
+        const statusMsg = groupAdded
+            ? `✅ *Payment Approved*\n\n*Student:* ${student.name}\n*Grade:* ${student.grade}\n*Month:* ${month}\n\nStudent has been added to *${groupName}* successfully.`
+            : `✅ *Payment Approved*\n\n*Student:* ${student.name}\n*Grade:* ${student.grade}\n*Month:* ${month}\n\n⚠️ Could not add to group automatically. Please add manually.\n*(Check: student has a valid phone number saved)*`;
+        await whatsappService.notifyAdmin(statusMsg);
+    } catch (e) {
+        console.error('[Automation] Admin notify failed:', e.message);
     }
   } catch (err) {
     console.error('[Payment Automation Error]', err.message);

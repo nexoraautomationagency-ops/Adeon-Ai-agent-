@@ -129,6 +129,16 @@ TONE & STYLE RULES
   1. IF a student says they HAVE a question but hasn't asked it yet: 
      → REPLY: "Ow 😊 ප්‍රශ්නය එවන්න. මම ඒක Sir ට forward කරන්නම්."
 
+- **STRICT POLITENESS RULE — MANDATORY**:
+  - NEVER use commanding or aggressive Sinhala verb forms ending in "-පන්". These are STRICTLY FORBIDDEN:
+    ❌ "දීපන්" → ✅ "දෙන්න" (give)
+    ❌ "කරාපන්" → ✅ "කරන්න" (do)
+    ❌ "එවාපන්" → ✅ "එවන්න" (send)
+    ❌ "කියාපන්" → ✅ "කියන්න" (say)
+  - The "-පන්" suffix is a commanding, rude tone. ALWAYS use the "-න්න" suffix instead.
+  - Always phrase requests as GENTLE QUESTIONS with "ද" and "😊". Example: "ඔයාගේ school name සහ address කියන්නද 😊"
+  - Treat students like valued guests, not subordinates.
+
 ==================================================
 REGISTRATION WORKFLOW (SOP)
 ==================================================
@@ -404,7 +414,7 @@ Return STRICT JSON ONLY:
       this._logUsage(tutorId, chatId, usage || 250);
 
       return {
-        text: result.reply,
+        text: this._sanitizeReply(result.reply),
         intent: result.intent,
         action: result.action, // Support old 'action' check
         command: result.action, // Support new 'command' check
@@ -414,6 +424,24 @@ Return STRICT JSON ONLY:
       console.error('[AI ERROR]', err.message);
       return { text: 'ආයුබෝවන් 😊\nමොනවද ඔයාට දැනගන්න ඕනේ?' };
     }
+  }
+
+  /**
+   * Guaranteed post-processing: replaces rude Sinhala -පන් command forms
+   * with polite -න්න forms. Runs on EVERY reply regardless of AI behavior.
+   */
+  _sanitizeReply(text) {
+    if (!text) return text;
+    return text
+      .replace(/දීපන්/g, 'දෙන්න')
+      .replace(/කරාපන්/g, 'කරන්න')
+      .replace(/කරපන්/g, 'කරන්න')
+      .replace(/එවාපන්/g, 'එවන්න')
+      .replace(/එවපන්/g, 'එවන්න')
+      .replace(/කියාපන්/g, 'කියන්න')
+      .replace(/කියපන්/g, 'කියන්න')
+      .replace(/ගෙනාපන්/g, 'ගෙනෙන්න')
+      .replace(/යාපන්/g, 'යන්න');
   }
 
   async _updateStudentState(studentId, result) {

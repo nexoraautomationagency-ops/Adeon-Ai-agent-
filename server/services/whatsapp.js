@@ -663,13 +663,33 @@ Show this help message.`;
       const student = await dbGet('SELECT * FROM students WHERE id = ?', [studentId]);
       if (!student || student.status !== 'active') return false;
       
-      // CRITICAL: Use whatsapp_id if we have it, otherwise fallback to normalized phone
-      const participantId = student.whatsapp_id || this._normalizePhone(student.phone);
-      if (!participantId) return false;
+      // CRITICAL: @lid IDs cannot be used to add participants to groups.
+      // They are WhatsApp internal privacy IDs. We MUST use the @c.us format derived from the real phone number.
+      // Only use whatsapp_id if it's already in @c.us format.
+      let participantId = null;
+      if (student.whatsapp_id && student.whatsapp_id.includes('@c.us')) {
+        participantId = student.whatsapp_id;
+      } else if (student.phone) {
+        participantId = this._normalizePhone(student.phone);
+      } else if (student.whatsapp_id && student.whatsapp_id.includes('@lid')) {
+        // Last resort: extract the number portion and try as @c.us
+        // This may not work but is better than nothing
+        const numPart = student.whatsapp_id.split('@')[0];
+        // Only use if it looks like a real phone number (under 15 digits)
+        if (numPart.length <= 15) participantId = numPart + '@c.us';
+      }
+
+      if (!participantId) {
+        console.error(`[WhatsApp] Cannot add student ${studentId} to group: no valid phone/ID found. whatsapp_id=${student.whatsapp_id}, phone=${student.phone}`);
+        return false;
+      }
 
       const dbGroup = await dbGet(`SELECT whatsapp_group_id FROM whatsapp_groups WHERE (grade = ?) AND (month IS NULL OR month = ?) LIMIT 1`, [student.grade, month]);
       if (dbGroup?.whatsapp_group_id) {
-          await this.addParticipantToGroup(dbGroup.whatsapp_group_id, participantId.replace('@lid', '@c.us'));
+          console.log(`[WhatsApp] Adding ${participantId} (from phone: ${student.phone}) to group for Grade ${student.grade}`);
+          await this.addParticipantToGroup(dbGroup.whatsapp_group_id, participantId);
+      } else {
+          console.warn(`[WhatsApp] No group found for Grade ${student.grade}, Month ${month}`);
       }
       return true;
     } catch (err) { 
@@ -747,6 +767,14 @@ Show this help message.`;
       if (!participant || (!participant.isAdmin && !participant.isSuperAdmin)) {
           console.error(`[WhatsApp] 🛑 BOT IS NOT ADMIN in group ${chat.name}. Please make the bot an admin.`);
           await this.notifyAdmin(`⚠️ *Group Sync Failed*\nI am not an admin in *${chat.name}*. Please make me an admin to add students automatically.`);
+          return;
+      }
+
+      // Pre-check: Is student already in the group?
+      const alreadyIn = chat.participants.find(p => p.id._serialized === participantId || p.id.user === participantId.split('@')[0]);
+      if (alreadyIn) {
+          console.log(`[WhatsApp] ℹ️ ${participantId} is already in group ${chat.name}`);
+          await this.notifyAdmin(`ℹ️ *Already in Group*\n\n*${participantId.split('@')[0]}* is already a member of *${chat.name}*. No action needed.`);
           return;
       }
 
