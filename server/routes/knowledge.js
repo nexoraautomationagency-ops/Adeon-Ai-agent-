@@ -8,11 +8,13 @@ const { developerOnly } = require('../middleware/auth');
  * GET all knowledge facts
  */
 router.get('/facts', async (req, res) => {
-  if (req.tutor.role !== 'admin' && req.tutor.role !== 'developer') return res.status(403).json({ error: 'Forbidden' });
+  // Allow tutors to view, but only developers/admins can edit
+  const tutorId = req.tutor.id;
   try {
     const { data, error } = await supabase
       .from('knowledge_base')
       .select('id, content, category, metadata')
+      .eq('tutor_id', tutorId) // Filter by YOUR ID
       .order('id', { ascending: false });
 
     if (error) throw error;
@@ -34,6 +36,7 @@ router.post('/facts/clear', async (req, res) => {
     let query = supabase
       .from('knowledge_base')
       .delete()
+      .eq('tutor_id', req.tutor.id) // Security: Only delete YOUR data
       .eq('category', category.toUpperCase());
     
     if (subCategory) {
@@ -58,7 +61,9 @@ router.delete('/facts/:id', async (req, res) => {
     const { error } = await supabase
       .from('knowledge_base')
       .delete()
-      .eq('id', req.params.id);
+      .eq('id', req.params.id)
+      .eq('tutor_id', req.tutor.id); // Security: Only delete YOUR data
+
 
     if (error) throw error;
     res.json({ success: true });
@@ -79,6 +84,7 @@ router.post('/facts', async (req, res) => {
       .from('knowledge_base')
       .insert([{ 
         content, 
+        tutor_id: req.tutor.id, // Save under YOUR ID
         category: category.toUpperCase(),
         embedding, 
         metadata: { 
@@ -101,7 +107,8 @@ router.post('/facts', async (req, res) => {
  */
 router.get('/examples', async (req, res) => {
   try {
-    const examples = await dbAll('SELECT * FROM knowledge_examples ORDER BY id DESC');
+    const examples = await dbAll('SELECT * FROM knowledge_examples WHERE tutor_id = ? ORDER BY id DESC', [req.tutor.id]);
+
     res.json({ examples });
   } catch (err) {
     res.status(500).json({ error: err.message });
