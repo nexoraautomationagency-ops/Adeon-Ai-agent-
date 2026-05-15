@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { Pool } = require('pg');
 const path = require('path');
+const WebSocket = require('ws');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -11,7 +12,11 @@ if (!supabaseUrl || !supabaseKey) {
   console.error('[DB] Missing Supabase credentials in .env');
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  realtime: {
+    transport: WebSocket,
+  }
+});
 
 // For raw SQL queries (migrations and complex queries)
 const pool = new Pool({
