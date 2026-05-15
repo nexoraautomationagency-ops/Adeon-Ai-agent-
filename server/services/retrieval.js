@@ -158,7 +158,7 @@ class RetrievalService {
       if (!student) return { state: 'NEW_LEAD', score: 'COLD', profile: 'Unknown Student', name: null, grade: null, school: null, phone: null };
 
       const recentPayments = await dbAll('SELECT month, status FROM payments WHERE student_id = ? ORDER BY year DESC, month DESC LIMIT 2', [student.id]);
-      const hasPendingPayment = recentPayments.some(p => p.status === 'pending');
+      const hasPendingPayment = recentPayments.some(p => p.status === 'unpaid' || p.status === 'pending');
       const payStatus = recentPayments.map(p => `${p.month}: ${p.status}`).join(', ');
 
       return {
@@ -202,15 +202,31 @@ class RetrievalService {
     try {
       let examples = [];
       
-      // 1. Try exact intent match if intent is known
-      if (intent && intent !== 'OTHER' && intent !== 'UNKNOWN') {
-        examples = await dbAll(
-          'SELECT student_message, ideal_reply FROM knowledge_examples WHERE intent = ? ORDER BY RANDOM() LIMIT ?',
-          [intent, limit]
-        );
+      // 1. Try Supabase Knowledge Base (STYLE category) first
+      const { data: styleEx } = await supabase
+        .from('knowledge_base')
+        .select('content')
+        .eq('category', 'STYLE')
+        .limit(limit);
+      
+      if (styleEx) {
+        examples = styleEx.map(ex => {
+          // Attempt to parse "Student: ... Admin: ..." format if it exists, 
+          // otherwise just return the content as a single block
+          return { student_message: 'Example', ideal_reply: ex.content };
+        });
       }
 
-      // 2. Fallback or Supplement: Keyword search on messages (very effective for taught phrases)
+      // 2. Try local SQLite intent match
+      if (examples.length < limit && intent && intent !== 'OTHER' && intent !== 'UNKNOWN') {
+        const localEx = await dbAll(
+          'SELECT student_message, ideal_reply FROM knowledge_examples WHERE intent = ? ORDER BY RANDOM() LIMIT ?',
+          [intent, limit - examples.length]
+        );
+        examples = [...examples, ...localEx];
+      }
+
+      // 3. Fallback or Supplement: Keyword search on messages
       if (examples.length < limit && query) {
         const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
         if (words.length > 0) {
@@ -223,24 +239,8 @@ class RetrievalService {
           params.push(limit - examples.length);
 
           const extra = await dbAll(searchSql, params);
-          
-          // Avoid duplicates
-          const seen = new Set(examples.map(e => e.student_message));
-          extra.forEach(e => {
-            if (!seen.has(e.student_message)) {
-              examples.push(e);
-              seen.add(e.student_message);
-            }
-          });
+          examples = [...examples, ...extra];
         }
-      }
-
-      // 3. Last Fallback: Get general examples if still empty
-      if (examples.length === 0) {
-        examples = await dbAll(
-          'SELECT student_message, ideal_reply FROM knowledge_examples ORDER BY RANDOM() LIMIT ?',
-          [limit]
-        );
       }
 
       return examples.slice(0, limit);

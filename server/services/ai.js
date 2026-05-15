@@ -105,7 +105,9 @@ class AIService {
       tutorContext,
       studentContext,
       faq,
-      sop
+      style,
+      sop,
+      intentExamples
     } = context;
 
     const missingFields = this._getMissingFields(studentContext);
@@ -213,6 +215,12 @@ KNOWLEDGE BASE (FAQ & SOP)
 - USE THE MASTER_REGISTRATION_FLOW SOP TEMPLATE FOR CONFIRMATIONS.
 ${faq.map(f => `- ${f.content}`).join('\n')}
 ${sop.map(s => `- ${s.content}`).join('\n')}
+
+==================================================
+STYLE & EXAMPLES (Follow this Tone)
+==================================================
+${style.map(s => `- ${s.content}`).join('\n')}
+${intentExamples.map(e => `Student: "${e.student_message}"\nAdmin: "${e.ideal_reply}"`).join('\n---\n')}
 
 ==================================================
 KNOWN STUDENT DATA
@@ -339,14 +347,25 @@ Return STRICT JSON ONLY:
             text: "Super! 😊 Tute එක ලැබුණා කියලා සතුටුයි. ඔයාට තවත් කුමක් හෝ අවශ්යද?",
             intent: 'CONFIRM_DELIVERY',
             command: 'CONFIRM_DELIVERY',
-            action: 'RESPOND',
+            action: 'CONFIRM_DELIVERY',
             data: {}
           };
       }
 
-      if (isDetailRequest && !prompt.includes('join') && !prompt.includes('grade')) {
-          // DYNAMIC FETCH: Get the Master Template from RAG (Knowledge Base)
-          const master = await dbGet("SELECT content FROM knowledge_base WHERE category = 'STYLE' AND tutor_id = ? LIMIT 1", [tutorId]);
+      if (isDetailRequest && !prompt.includes('join')) {
+          // DYNAMIC FETCH: Get the Master Template or Grade-specific Fee
+          const gradeMatch = prompt.match(/grade\s*(\d+)/i) || prompt.match(/(\d+)\s*grade/i);
+          const requestedGrade = gradeMatch ? gradeMatch[1] : null;
+          
+          let master;
+          if (requestedGrade) {
+            master = await dbGet("SELECT content FROM knowledge_base WHERE category = 'FAQ' AND content LIKE ? AND tutor_id = ? LIMIT 1", [`%grade ${requestedGrade}%`, tutorId]);
+          }
+          
+          if (!master) {
+            master = await dbGet("SELECT content FROM knowledge_base WHERE category = 'STYLE' AND tutor_id = ? LIMIT 1", [tutorId]);
+          }
+
           if (master) {
               return {
                 text: master.content,
@@ -401,8 +420,9 @@ Return STRICT JSON ONLY:
         return { text: 'කරුණාකර මොහොතක් රැඳෙන්න 😊', intent: 'OTHER', action: 'RESPOND', data: {} };
       }
 
+      const confidence = result.confidence ?? 0.5;
       const safeIntents = ['GREETING', 'ADMISSION', 'SCHEDULE', 'PAYMENT', 'OTHER'];
-      if (result.confidence < 0.15 && result.action !== 'REGISTER_STUDENT' && result.action !== 'CONFIRM_DELIVERY' && !safeIntents.includes(result.intent)) {
+      if (confidence < 0.15 && result.action !== 'REGISTER_STUDENT' && result.action !== 'CONFIRM_DELIVERY' && !safeIntents.includes(result.intent)) {
         result.reply = 'මේ ගැන office එකෙන් confirm කරලා ඔයාට reply එකක් දෙන්නම් 😊';
         result.action = 'ESCALATE';
       }
