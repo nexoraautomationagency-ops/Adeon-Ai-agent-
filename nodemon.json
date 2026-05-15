@@ -1,0 +1,13 @@
+{
+  "watch": ["server"],
+  "ext": "js,json",
+  "ignore": [
+    "server/db/backups",
+    "server/logs",
+    ".wwebjs_auth",
+    ".wwebjs_cache",
+    "client",
+    "scripts"
+  ],
+  "delay": "2500"
+}

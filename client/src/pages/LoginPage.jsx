@@ -1,20 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, tutor } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // If already logged in, go to dashboard
+  useEffect(() => {
+    if (tutor) navigate('/');
+  }, [tutor, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) return toast.error('Please fill in all fields');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return toast.error('Please enter a valid email address');
     setLoading(true);
     try {
       await login(email, password);
       toast.success('Welcome back! 🎓');
+      navigate('/');
     } catch (err) {
       toast.error(err.message || 'Login failed');
     } finally {
@@ -56,6 +66,9 @@ export default function LoginPage() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--text-muted)' }}>
+          New tutor? <a href="/register" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Create Account</a>
+        </p>
       </div>
     </div>
   );

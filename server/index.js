@@ -15,9 +15,13 @@ const { errorHandler } = require('./middleware/errorHandler');
 const { setupWebSocket } = require('./websocket');
 const whatsappService = require('./services/whatsapp');
 const aiService = require('./services/ai');
+const cronService = require('./services/cron');
 
 const app = express();
 const server = http.createServer(app);
+
+// Trust proxy for rate limiting
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -39,7 +43,10 @@ app.use('/api/groups', authMiddleware, require('./routes/groups'));
 app.use('/api/whatsapp', authMiddleware, require('./routes/whatsapp'));
 app.use('/api/messages', authMiddleware, require('./routes/messages'));
 app.use('/api/ai', authMiddleware, aiLimiter, require('./routes/ai'));
+app.use('/api/knowledge', authMiddleware, require('./routes/knowledge'));
 app.use('/api/dashboard', authMiddleware, require('./routes/dashboard'));
+app.use('/api/attendance', authMiddleware, require('./routes/attendance'));
+app.use('/api/tutes', authMiddleware, require('./routes/tutes'));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime(), whatsapp: whatsappService.getStatus().status, timestamp: new Date().toISOString() });
@@ -56,15 +63,15 @@ app.use(errorHandler);
 // WebSocket
 setupWebSocket(server);
 
-// Start
-const PORT = process.env.PORT || 3001;
-
-async function start() {
-  // Initialize database
-  await initDb();
-  await migrate();
-
-  server.listen(PORT, () => {
+  // Start
+  const PORT = process.env.PORT || 3001;
+  
+  async function start() {
+    // Initialize database
+    await initDb();
+    await migrate();
+  
+    server.listen(PORT, () => {
     console.log(`
 ╔══════════════════════════════════════════════╗
 ║     🎓 Tutor WhatsApp SaaS Platform         ║
@@ -76,6 +83,9 @@ async function start() {
     // Initialize WhatsApp
     console.log('[Server] Initializing WhatsApp...');
     whatsappService.initialize();
+    
+    // Start Cron Jobs
+    cronService.start();
 
     // Schedule cache cleanup every 6 hours
     setInterval(() => { try { aiService.cleanCache(); } catch(e) {} }, 6 * 60 * 60 * 1000);
@@ -84,8 +94,37 @@ async function start() {
 
 start().catch(err => { console.error('Failed to start:', err); process.exit(1); });
 
-// Graceful shutdown
-process.on('SIGINT', async () => { console.log('\nShutting down...'); await whatsappService.destroy(); closeDb(); process.exit(0); });
-process.on('SIGTERM', async () => { await whatsappService.destroy(); closeDb(); process.exit(0); });
+// Graceful shutdown — works on both Windows and Linux
+async function gracefulShutdown(signal) {
+  console.log(`\n[Server] ${signal} received. Shutting down...`);
+  cronService.stop();
+  await whatsappService.destroy();
+  closeDb();
+  process.exit(0);
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+// Handle Windows-specific process exit (nodemon on Windows sends SIGINT, not SIGUSR2)
+process.on('exit', () => {
+  try { closeDb(); } catch(e) {}
+});
+
+// Prevent zombie processes from wwebjs internal errors
+process.on('uncaughtException', (err) => {
+  console.error('🚨 [FATAL] Uncaught Exception:', err);
+  // Graceful shutdown before exit
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ [Warning] Unhandled Rejection at:', promise, 'reason:', reason);
+  // Do NOT shut down on every rejection in production as it kills the bot for minor API errors
+  if (reason && (reason.message?.includes('database') || reason.message?.includes('connection'))) {
+    console.error('🚨 Critical DB error detected. Shutting down for safety...');
+    gracefulShutdown('CRITICAL_UNHANDLED_REJECTION');
+  }
+});
 
 module.exports = app;

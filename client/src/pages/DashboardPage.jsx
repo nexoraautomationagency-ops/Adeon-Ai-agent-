@@ -1,25 +1,41 @@
 import { useState, useEffect } from 'react';
-import { Users, BookOpen, CreditCard, MessageCircle, TrendingUp, ArrowUpRight } from 'lucide-react';
+import { Users, BookOpen, CreditCard, MessageCircle, TrendingUp, ArrowUpRight, MessageSquare, Zap } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import api from '../api';
+import { useWebSocket } from '../context/WebSocketContext';
+import { useAuth } from '../context/AuthContext';
 
 const PIE_COLORS = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { lastMessage } = useWebSocket();
+  const { tutor } = useAuth();
 
-  useEffect(() => {
+  const loadData = () => {
     api.getDashboardSummary()
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    if (lastMessage?._type === 'db_update') {
+      // Only refresh if it belongs to this tutor (SaaS safety)
+      if (lastMessage.tutor_id === tutor?.id) {
+        console.log('[Dashboard] Refreshing due to DB update...');
+        loadData();
+      }
+    }
+  }, [lastMessage, tutor]);
 
   if (loading) return <div className="loading-spinner" />;
   if (!data) return <div className="empty-state"><h3>Failed to load dashboard</h3></div>;
 
-  const { students, payments, classCount, recentMessages, revenueTrend, studentsByGrade } = data;
+  const { students, payments, classCount, recentMessages, aiMessages, revenueTrend, studentsByGrade } = data;
 
   const collectionRate = payments.expected > 0
     ? Math.round((payments.collected / payments.expected) * 100)
@@ -27,6 +43,13 @@ export default function DashboardPage() {
 
   return (
     <div>
+      <div className="flex items-center justify-between mb-5">
+        <h2 style={{ margin: 0 }}>Overview</h2>
+        <div className="ai-badge">
+          <Zap size={14} fill="currentColor" /> AI Powered Dashboard
+        </div>
+      </div>
+
       <div className="stats-grid">
         <div className="stat-card purple">
           <div className="stat-icon"><Users size={22} /></div>
@@ -44,9 +67,9 @@ export default function DashboardPage() {
           <div className="stat-label">Active Classes</div>
         </div>
         <div className="stat-card orange">
-          <div className="stat-icon"><MessageCircle size={22} /></div>
-          <div className="stat-value">{recentMessages}</div>
-          <div className="stat-label">Messages (24h)</div>
+          <div className="stat-icon"><MessageSquare size={22} /></div>
+          <div className="stat-value">{aiMessages || 0}</div>
+          <div className="stat-label">AI Assistant Handled</div>
         </div>
       </div>
 
@@ -85,7 +108,7 @@ export default function DashboardPage() {
             <h3 className="card-title">📊 Students by Grade</h3>
           </div>
           {studentsByGrade.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={180}>
               <PieChart>
                 <Pie
                   data={studentsByGrade}
@@ -93,8 +116,8 @@ export default function DashboardPage() {
                   nameKey="grade"
                   cx="50%"
                   cy="50%"
-                  outerRadius={80}
-                  innerRadius={45}
+                  outerRadius={65}
+                  innerRadius={40}
                   paddingAngle={3}
                   label={({ grade, count }) => `${grade}: ${count}`}
                 >
@@ -120,16 +143,16 @@ export default function DashboardPage() {
           <div className="card-header">
             <h3 className="card-title"><TrendingUp size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />Revenue Trend</h3>
           </div>
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart data={revenueTrend} barGap={8}>
               <XAxis
                 dataKey="month"
-                tick={{ fill: '#94a3b8', fontSize: 12 }}
+                tick={{ fill: '#94a3b8', fontSize: 11 }}
                 axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: '#94a3b8', fontSize: 12 }}
+                tick={{ fill: '#94a3b8', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={v => `${(v / 1000).toFixed(0)}k`}
@@ -138,13 +161,54 @@ export default function DashboardPage() {
                 contentStyle={{ background: '#1a1f35', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
                 labelStyle={{ color: '#f1f5f9' }}
                 formatter={(value) => [`Rs.${value.toLocaleString()}`, '']}
+                cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
               />
-              <Bar dataKey="collected" name="Collected" fill="#6366f1" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="expected" name="Expected" fill="rgba(99,102,241,0.2)" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="collected" name="Collected" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={30} />
+              <Bar dataKey="expected" name="Expected" fill="rgba(99,102,241,0.2)" radius={[4, 4, 0, 0]} barSize={30} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* Admin Access Section */}
+      <div className="card mt-4">
+        <div className="card-header">
+          <h3 className="card-title">🛡️ Admin & Access</h3>
+          <span className="badge badge-secondary">{(data.admins?.secondary?.length || 0) + 1} Active</span>
+        </div>
+        <div style={{display:'flex', flexWrap:'wrap', gap:12}}>
+           {/* Primary Admin */}
+           <div style={{padding:'10px 16px', background:'rgba(99,102,241,0.08)', borderRadius:12, border:'1px solid rgba(99,102,241,0.2)', display:'flex', alignItems:'center', gap:10}}>
+             <div style={{width:8, height:8, borderRadius:'50%', background:'#6366f1'}}/>
+             <div>
+               <div style={{fontSize:13, fontWeight:600}}>{data.admins?.primary?.name || 'Master Admin'}</div>
+               <div style={{fontSize:11, color:'var(--text-muted)'}}>{data.admins?.primary?.phone} (Primary)</div>
+             </div>
+           </div>
+           
+           {/* Secondary Admins */}
+           {data.admins?.secondary?.map(admin => (
+             <div key={admin.id} style={{padding:'10px 16px', background:'rgba(255,255,255,0.03)', borderRadius:12, border:'1px solid var(--border-color)', display:'flex', alignItems:'center', gap:10}}>
+               <div style={{width:8, height:8, borderRadius:'50%', background:'var(--text-muted)'}}/>
+               <div>
+                 <div style={{fontSize:13, fontWeight:600}}>{admin.name || 'Admin'}</div>
+                 <div style={{fontSize:11, color:'var(--text-muted)'}}>{admin.phone}</div>
+               </div>
+             </div>
+           ))}
+           
+           {/* System Admins from .env - ONLY VISIBLE TO DEVELOPER */}
+           {tutor?.role === 'developer' && data.admins?.system?.map((phone, i) => (
+             <div key={`sys-${i}`} style={{padding:'10px 16px', background:'rgba(16,185,129,0.05)', borderRadius:12, border:'1px solid rgba(16,185,129,0.2)', display:'flex', alignItems:'center', gap:10}}>
+               <div style={{width:8, height:8, borderRadius:'50%', background:'#10b981'}}/>
+               <div>
+                 <div style={{fontSize:13, fontWeight:600}}>System Config</div>
+                 <div style={{fontSize:11, color:'var(--text-muted)'}}>{phone}</div>
+               </div>
+             </div>
+           ))}
+        </div>
+      </div>
     </div>
   );
 }

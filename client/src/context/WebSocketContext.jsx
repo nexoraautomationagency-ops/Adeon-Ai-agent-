@@ -11,7 +11,8 @@ export function WebSocketProvider({ children }) {
 
   const connect = useCallback(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const token = localStorage.getItem('token');
+    const wsUrl = `${protocol}//${window.location.host}/ws?token=${token}`;
 
     try {
       const ws = new WebSocket(wsUrl);
@@ -32,6 +33,9 @@ export function WebSocketProvider({ children }) {
               break;
             case 'wa_message':
               setLastMessage(data);
+              break;
+            case 'db_update':
+              setLastMessage({ ...data, _type: 'db_update', _ts: Date.now() });
               break;
           }
         } catch (e) {

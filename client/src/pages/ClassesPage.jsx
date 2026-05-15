@@ -13,8 +13,8 @@ export default function ClassesPage() {
   const load = () => { setLoading(true); api.getClasses().then(d=>setClasses(d.classes)).catch(e=>toast.error(e.message)).finally(()=>setLoading(false)); };
   useEffect(load, []);
 
-  const openCreate = () => { setEditClass(null); setForm({ subject:'', grade:'', day_of_week:'Monday', start_time:'', end_time:'', location:'', max_students:50 }); setShowModal(true); };
-  const openEdit = (c) => { setEditClass(c); setForm({ subject:c.subject, grade:c.grade, day_of_week:c.day_of_week, start_time:c.start_time, end_time:c.end_time||'', location:c.location||'', max_students:c.max_students }); setShowModal(true); };
+  const openCreate = () => { setEditClass(null); setForm({ subject:'', grade:'', day_of_week:'Monday', start_time:'', end_time:'', location:'', max_students:50, fee: 0 }); setShowModal(true); };
+  const openEdit = (c) => { setEditClass(c); setForm({ subject:c.subject, grade:c.grade, day_of_week:c.day_of_week, start_time:c.start_time, end_time:c.end_time||'', location:c.location||'', max_students:c.max_students, fee: c.fee || 0 }); setShowModal(true); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,7 +46,10 @@ export default function ClassesPage() {
                 <button className="btn btn-ghost btn-icon text-danger" onClick={()=>handleDelete(c.id)}><Trash2 size={16}/></button>
               </div>
             </div>
-            <span className="badge badge-neutral mb-3">{c.grade}</span>
+            <div className="flex items-center justify-between mb-3">
+              <span className="badge badge-neutral">{c.grade}</span>
+              <span style={{fontSize:16,fontWeight:700,color:'var(--accent)'}}>Rs.{c.fee || 0}</span>
+            </div>
             <div className="flex flex-col gap-2 mt-2" style={{fontSize:14,color:'var(--text-secondary)'}}>
               <div className="flex items-center gap-2"><Clock size={15}/>{c.day_of_week} • {c.start_time}{c.end_time ? ` - ${c.end_time}` : ''}</div>
               <div className="flex items-center gap-2"><MapPin size={15}/>{c.location||'Online'}</div>
@@ -64,7 +67,10 @@ export default function ClassesPage() {
         <div className="form-group"><label className="form-label">Start Time *</label><input className="form-input" type="time" required value={form.start_time} onChange={e=>setForm({...form,start_time:e.target.value})}/></div></div>
         <div className="form-row"><div className="form-group"><label className="form-label">End Time</label><input className="form-input" type="time" value={form.end_time} onChange={e=>setForm({...form,end_time:e.target.value})}/></div>
         <div className="form-group"><label className="form-label">Location</label><input className="form-input" value={form.location} onChange={e=>setForm({...form,location:e.target.value})} placeholder="Main Hall"/></div></div>
-        <div className="form-group"><label className="form-label">Max Students</label><input className="form-input" type="number" value={form.max_students} onChange={e=>setForm({...form,max_students:parseInt(e.target.value)||50})}/></div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Max Students</label><input className="form-input" type="number" value={form.max_students} onChange={e=>setForm({...form,max_students:parseInt(e.target.value)||50})}/></div>
+          <div className="form-group"><label className="form-label">Monthly Fee (Rs.)</label><input className="form-input" type="number" value={form.fee} onChange={e=>setForm({...form,fee:parseInt(e.target.value)||0})}/></div>
+        </div>
       </div><div className="modal-footer"><button type="button" className="btn btn-secondary" onClick={()=>setShowModal(false)}>Cancel</button><button type="submit" className="btn btn-primary">{editClass?'Update':'Create'}</button></div></form>
     </div></div>)}
   </div>);

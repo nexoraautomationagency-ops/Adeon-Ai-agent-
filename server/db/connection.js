@@ -1,125 +1,146 @@
-const initSqlJs = require('sql.js');
+const { createClient } = require('@supabase/supabase-js');
+const { Pool } = require('pg');
 const path = require('path');
-const fs = require('fs');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../data/tutor.db');
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const databaseUrl = process.env.DATABASE_URL;
 
-let db = null;
-let saveTimer = null;
+if (!supabaseUrl || !supabaseKey) {
+  console.error('[DB] Missing Supabase credentials in .env');
+}
 
-async function initDb() {
-  if (db) return db;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-  const dataDir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+// For raw SQL queries (migrations and complex queries)
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false // Required for Supabase
+  },
+  max: 20, // Limit connections for production
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 15000,
+});
+
+async function initDb(retries = 5) {
+  while (retries > 0) {
+    try {
+      const client = await pool.connect();
+      console.log('✅ Connected to Supabase PostgreSQL');
+      client.release();
+      return; // Success
+    } catch (err) {
+      retries--;
+      console.error(`❌ DB Connection failed (${retries} retries left):`, err.message);
+      if (retries === 0) throw err;
+      await new Promise(r => setTimeout(r, 5000)); // Wait 5s before retry
+    }
   }
-
-  const SQL = await initSqlJs();
-
-  // Load existing database or create new
-  if (fs.existsSync(DB_PATH)) {
-    const buffer = fs.readFileSync(DB_PATH);
-    db = new SQL.Database(buffer);
-  } else {
-    db = new SQL.Database();
-  }
-
-  // Enable WAL-like behavior and foreign keys
-  db.run('PRAGMA foreign_keys = ON');
-
-  return db;
 }
 
 function getDb() {
-  if (!db) {
-    throw new Error('Database not initialized. Call initDb() first.');
-  }
-  return db;
+  return pool;
 }
 
-// Save database to disk (call after writes)
-function saveDb() {
-  if (!db) return;
-  try {
-    const data = db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(DB_PATH, buffer);
-  } catch (err) {
-    console.error('[DB] Save error:', err.message);
+// Helper: run a statement (INSERT/UPDATE/DELETE)
+async function dbRun(sql, params = []) {
+  // Convert ? to $1, $2, etc. for PostgreSQL
+  // Fix Bug 41: Robust placeholder replacement (? -> $n) that ignores '?' inside string literals
+  let count = 0;
+  let inString = false;
+  let pgSql = '';
+  
+  for (let i = 0; i < sql.length; i++) {
+    const char = sql[i];
+    if (char === "'") inString = !inString;
+    
+    if (char === '?' && !inString) {
+      count++;
+      pgSql += `$${count}`;
+    } else {
+      pgSql += char;
+    }
   }
-}
 
-// Force save immediately
-function saveDbNow() {
-  if (!db) return;
-  if (saveTimer) clearTimeout(saveTimer);
-  try {
-    const data = db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(DB_PATH, buffer);
-  } catch (err) {
-    console.error('[DB] Save error:', err.message);
+  const res = await pool.query(pgSql, params);
+  
+  // Try to get last insert ID if it was an INSERT
+  let lastInsertRowid = 0;
+  if (res.rows && res.rows.length > 0) {
+    lastInsertRowid = res.rows[0].id || 0;
   }
-}
 
-function closeDb() {
-  if (db) {
-    saveDbNow();
-    db.close();
-    db = null;
-  }
-}
-
-// Helper: run a statement and return { changes, lastInsertRowid }
-function dbRun(sql, params = []) {
-  const d = getDb();
-  d.run(sql, params);
-  const changes = d.getRowsModified();
-  const lastId = d.exec('SELECT last_insert_rowid() as id');
-  const lastInsertRowid = lastId.length > 0 ? lastId[0].values[0][0] : 0;
-  saveDb();
-  return { changes, lastInsertRowid };
+  return { 
+    changes: res.rowCount, 
+    lastInsertRowid: lastInsertRowid 
+  };
 }
 
 // Helper: get one row
-function dbGet(sql, params = []) {
-  const d = getDb();
-  const stmt = d.prepare(sql);
-  stmt.bind(params);
-  let row = null;
-  if (stmt.step()) {
-    const cols = stmt.getColumnNames();
-    const vals = stmt.get();
-    row = {};
-    cols.forEach((c, i) => { row[c] = vals[i]; });
+async function dbGet(sql, params = []) {
+  // Fix Bug 41: Robust placeholder replacement (? -> $n) that ignores '?' inside string literals
+  let count = 0;
+  let inString = false;
+  let pgSql = '';
+  
+  for (let i = 0; i < sql.length; i++) {
+    const char = sql[i];
+    if (char === "'") inString = !inString;
+    
+    if (char === '?' && !inString) {
+      count++;
+      pgSql += `$${count}`;
+    } else {
+      pgSql += char;
+    }
   }
-  stmt.free();
-  return row;
+
+  const res = await pool.query(pgSql, params);
+  return res.rows[0] || null;
 }
 
 // Helper: get all rows
-function dbAll(sql, params = []) {
-  const d = getDb();
-  const stmt = d.prepare(sql);
-  stmt.bind(params);
-  const rows = [];
-  const cols = stmt.getColumnNames();
-  while (stmt.step()) {
-    const vals = stmt.get();
-    const row = {};
-    cols.forEach((c, i) => { row[c] = vals[i]; });
-    rows.push(row);
+async function dbAll(sql, params = []) {
+  // Fix Bug 41: Robust placeholder replacement (? -> $n) that ignores '?' inside string literals
+  let count = 0;
+  let inString = false;
+  let pgSql = '';
+  
+  for (let i = 0; i < sql.length; i++) {
+    const char = sql[i];
+    if (char === "'") inString = !inString;
+    
+    if (char === '?' && !inString) {
+      count++;
+      pgSql += `$${count}`;
+    } else {
+      pgSql += char;
+    }
   }
-  stmt.free();
-  return rows;
+
+  const res = await pool.query(pgSql, params);
+  return res.rows;
 }
 
 // Helper: execute raw SQL (for migrations)
-function dbExec(sql) {
-  const d = getDb();
-  d.exec(sql);
-  saveDb();
+async function dbExec(sql) {
+  await pool.query(sql);
 }
 
-module.exports = { initDb, getDb, closeDb, saveDb, saveDbNow, dbRun, dbGet, dbAll, dbExec };
+function closeDb() {
+  return pool.end();
+}
+
+module.exports = { 
+  supabase, 
+  pool, 
+  initDb, 
+  getDb, 
+  closeDb, 
+  dbRun, 
+  dbGet, 
+  dbAll, 
+  dbExec 
+};

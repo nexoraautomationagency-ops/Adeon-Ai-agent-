@@ -5,8 +5,9 @@ function errorHandler(err, req, res, next) {
     return res.status(400).json({ error: err.message });
   }
 
-  if (err.code === 'SQLITE_CONSTRAINT') {
-    return res.status(409).json({ error: 'Record already exists or constraint violated' });
+  if (err.code === 'SQLITE_CONSTRAINT' || err.code === '23505') {
+    const detail = err.detail || 'Record already exists or constraint violated';
+    return res.status(409).json({ error: detail.includes('key') ? 'A student with this phone number already exists.' : detail });
   }
 
   res.status(err.status || 500).json({

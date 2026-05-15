@@ -1,51 +1,114 @@
 const express = require('express');
-const { dbRun, dbGet, dbAll } = require('../db/connection');
-const aiService = require('../services/ai');
 const router = express.Router();
+const { dbRun, dbAll, dbGet } = require('../db/connection');
+const aiService = require('../services/ai');
 
-router.post('/generate', async (req, res, next) => {
+/**
+ * Save AI Feedback (Correction)
+ * When a tutor edits an AI response in the dashboard
+ */
+router.post('/feedback', async (req, res) => {
+  const { message_log_id, original_ai_reply, corrected_reply, correction_type } = req.body;
+  const tutor_id = req.tutor.id;
+
   try {
-    const { type, instruction, data } = req.body;
-    if (!type && !instruction) return res.status(400).json({ error: 'type or instruction required' });
-    let result;
-    switch (type) {
-      case 'announcement': result = await aiService.generateAnnouncement(data || instruction); break;
-      case 'rephrase': result = await aiService.rephraseMessage(instruction); break;
-      case 'payment_reminder': result = await aiService.generatePaymentReminder(data.student_name, data.amount, data.month); break;
-      case 'summary': result = await aiService.summarizeData(data, instruction || 'general'); break;
-      default: result = await aiService.generateCustomMessage(instruction);
+    // 1. Store feedback
+    await dbRun(`
+      INSERT INTO ai_feedback (message_log_id, original_ai_reply, corrected_reply, correction_type, tutor_id)
+      VALUES (?, ?, ?, ?, ?)
+    `, [message_log_id, original_ai_reply, corrected_reply, correction_type, tutor_id]);
+
+    // 2. Automatically add to knowledge examples for future RAG
+    const log = await dbGet('SELECT content, detected_intent FROM message_logs WHERE id = ?', [message_log_id]);
+    if (log && log.detected_intent) {
+      await dbRun(`
+        INSERT INTO knowledge_examples (tutor_id, intent, student_message, ideal_reply)
+        VALUES (?, ?, ?, ?)
+      `, [tutor_id, log.detected_intent, log.content, corrected_reply]);
     }
-    res.json({ message: result.text, fromCache: result.fromCache, tokensUsed: result.tokens });
-  } catch (err) { next(err); }
+
+    res.json({ success: true, message: 'Feedback stored and knowledge base updated.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.post('/rephrase', async (req, res, next) => {
+/**
+ * FAQ Management
+ */
+router.get('/faqs', async (req, res) => {
+  const faqs = await dbAll('SELECT * FROM faqs WHERE tutor_id = ? ORDER BY created_at DESC', [req.tutor.id]);
+  res.json({ faqs });
+});
+
+router.post('/faqs', async (req, res) => {
+  const { question, answer, keywords } = req.body;
   try {
-    const { message } = req.body;
-    if (!message) return res.status(400).json({ error: 'message required' });
-    const result = await aiService.rephraseMessage(message);
-    res.json({ original: message, rephrased: result.text, fromCache: result.fromCache });
-  } catch (err) { next(err); }
+    await dbRun(`
+      INSERT INTO faqs (tutor_id, question, answer, keywords)
+      VALUES (?, ?, ?, ?)
+    `, [req.tutor.id, question, answer, keywords]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.get('/templates', (req, res) => {
-  const templates = dbAll('SELECT * FROM message_templates WHERE tutor_id = ? ORDER BY category, name', [req.tutor.id]);
-  res.json({ templates });
+/**
+ * Knowledge Base Management
+ */
+router.get('/knowledge', async (req, res) => {
+  const examples = await dbAll('SELECT * FROM knowledge_examples WHERE tutor_id = ? ORDER BY created_at DESC', [req.tutor.id]);
+  res.json({ examples });
 });
 
-router.post('/templates', (req, res) => {
-  const { name, category, template, variables } = req.body;
-  if (!name || !template) return res.status(400).json({ error: 'name and template required' });
-  const result = dbRun('INSERT INTO message_templates (tutor_id,name,category,template,variables) VALUES (?,?,?,?,?)',
-    [req.tutor.id, name, category||'general', template, JSON.stringify(variables||[])]);
-  res.status(201).json({ template: dbGet('SELECT * FROM message_templates WHERE id=?', [result.lastInsertRowid]) });
+/**
+ * Generate AI Message
+ */
+router.post('/generate', async (req, res) => {
+  try {
+    const { prompt, context } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    const result = await aiService.generateCustomMessage(prompt, null, req.tutor.id);
+    res.json({ 
+      success: true, 
+      response: result.text,
+      intent: result.intent,
+      fromCache: result.fromCache,
+      tokens: result.tokens
+    });
+  } catch (err) {
+    console.error('[AI Route] Generate error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.post('/templates/:id/fill', (req, res) => {
-  const tmpl = dbGet('SELECT * FROM message_templates WHERE id=? AND tutor_id=?', [req.params.id, req.tutor.id]);
-  if (!tmpl) return res.status(404).json({ error: 'Template not found' });
-  const filled = aiService.fillTemplate(tmpl.template, req.body.variables || {});
-  res.json({ message: filled, template: tmpl.name });
+/**
+ * Rephrase AI Message
+ */
+router.post('/rephrase', async (req, res) => {
+  try {
+    const { message, tone } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const instruction = `Rephrase this message with ${tone || 'friendly'} tone: ${message}`;
+    const result = await aiService.generateCustomMessage(instruction, null, req.tutor.id);
+    
+    res.json({ 
+      success: true, 
+      rephrased: result.text,
+      fromCache: result.fromCache,
+      tokens: result.tokens
+    });
+  } catch (err) {
+    console.error('[AI Route] Rephrase error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;
