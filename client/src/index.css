@@ -91,6 +91,7 @@ body {
 .app-layout {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -1013,6 +1014,11 @@ body {
     grid-template-columns: 1fr;
     gap: 10px;
   }
+
+  /* Main Body Scroll Clearance */
+  .main-body {
+    padding-bottom: 80px;
+  }
 }
 
 /* ===== Custom Grid Utilities ===== */
@@ -1025,7 +1031,8 @@ body {
 /* ===== Mobile Responsiveness ===== */
 @media (max-width: 768px) {
   .classes-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 16px;
   }
 }
