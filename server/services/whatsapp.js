@@ -293,9 +293,8 @@ class WhatsAppService extends EventEmitter {
     const adminPhones = await this._getAdminPhones(tutorId);
     const isAdmin = adminPhones.has(senderId) || adminPhones.has(normalizedActual) || adminPhones.has(actualPhone);
 
-    if (process.env.NODE_ENV !== 'production') {
-       console.log(`[WhatsApp] Message from ${senderId} (Phone: ${actualPhone}, Norm: ${normalizedActual}), isAdmin: ${isAdmin}`);
-    }
+    // Always log incoming messages to help diagnose silent drops in production
+    console.log(`[WhatsApp] Message from ${senderId} (Phone: ${actualPhone}, Norm: ${normalizedActual}), isAdmin: ${isAdmin}, autoReply: ${this._settingsCache?.auto_reply_enabled}`);
 
     if (isAdmin && !isGroup && msg.type === 'chat') {
       const lowerBody = (combinedBody || '').toLowerCase().trim();
