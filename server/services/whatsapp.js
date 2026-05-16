@@ -218,10 +218,12 @@ class WhatsAppService extends EventEmitter {
     });
 
     this.client.on('message', async (msg) => {
-      // Filter system/broadcast messages only — NOT @lid (WhatsApp's new user ID format)
+      // Filter system/broadcast messages, statuses, and groups
       if (msg.fromMe || 
           msg.from === 'status@broadcast' || 
-          msg.from.includes('@newsletter')
+          msg.from.includes('@newsletter') ||
+          msg.from.includes('@g.us') || // DO NOT process or log group messages
+          msg.isStatus // DO NOT process status replies/updates
       ) return;
 
       if (this.processedMessages.has(msg.id._serialized)) return;
