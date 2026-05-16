@@ -43,7 +43,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
         <h2 style={{ margin: 0 }}>Overview</h2>
         <div className="ai-badge">
           <Zap size={14} fill="currentColor" /> AI Powered Dashboard
@@ -80,7 +80,7 @@ export default function DashboardPage() {
             <h3 className="card-title">💰 Payment Overview — {payments.month}</h3>
             <span className="badge badge-info">{collectionRate}% collected</span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div className="grid-2" style={{ gap: '12px' }}>
             <div style={{ padding: '16px', background: 'rgba(16,185,129,0.08)', borderRadius: 'var(--radius-sm)' }}>
               <div style={{ fontSize: '24px', fontWeight: 700, color: '#34d399' }}>{payments.paid || 0}</div>
               <div className="text-sm text-muted">Paid</div>

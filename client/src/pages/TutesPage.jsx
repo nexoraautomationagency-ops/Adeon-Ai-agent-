@@ -89,30 +89,30 @@ export default function TutesPage() {
       </div>
 
       {/* Controls Header - Premium Glass Look */}
-      <div className="glass-card p-6 rounded-2xl mb-8 flex items-center justify-between shadow-glow">
-        <div className="flex items-center gap-4">
-          <div className="search-bar">
+      <div className="glass-card p-6 rounded-2xl mb-8 flex flex-wrap items-center justify-between gap-6 shadow-glow">
+        <div className="flex flex-wrap md-flex-nowrap items-center gap-3 w-full md-w-auto">
+          <div className="search-bar w-full md-w-260">
             <Search className="search-icon" size={18}/>
             <input 
               className="form-input" 
               placeholder="Search students..." 
-              style={{paddingLeft:42, width:280, height:44, borderRadius:12}} 
+              style={{paddingLeft:42, width:'100%', height:44, borderRadius:12}} 
               value={search} 
               onChange={e=>setSearch(e.target.value)}
             />
           </div>
-          <select className="form-select" value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)} style={{width:140, height:44, borderRadius:12}}>
+          <select className="form-select flex-1 md-flex-none" value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)} style={{minWidth:120, maxWidth:130, height:44, borderRadius:12}}>
             <option value="">All Grades</option>
             {allGrades.map(g=><option key={g} value={g}>{g}</option>)}
           </select>
-          <select className="form-select" value={monthFilter} onChange={e=>setMonthFilter(e.target.value)} style={{width:140, height:44, borderRadius:12}}>
+          <select className="form-select flex-1 md-flex-none" value={monthFilter} onChange={e=>setMonthFilter(e.target.value)} style={{minWidth:120, maxWidth:130, height:44, borderRadius:12}}>
             <option value="">All Months</option>
             {MONTHS.map(m=><option key={m} value={m}>{m}</option>)}
           </select>
-          <select className="form-select" value={yearFilter} onChange={e=>setYearFilter(parseInt(e.target.value))} style={{width:110, height:44, borderRadius:12}}>
+          <select className="form-select flex-1 md-flex-none md-w-year" value={yearFilter} onChange={e=>setYearFilter(parseInt(e.target.value))} style={{height:44, borderRadius:12}}>
             {Array.from({length: new Date().getFullYear() - 2024 + 2}, (_, i) => 2024 + i).map(y=><option key={y} value={y}>{y}</option>)}
           </select>
-          <select className="form-select" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{width:140, height:44, borderRadius:12}}>
+          <select className="form-select flex-1 md-flex-none" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{minWidth:120, maxWidth:130, height:44, borderRadius:12}}>
             <option value="">All Status</option>
             <option value="pending">Pending</option>
             <option value="shipped">Shipped</option>
@@ -120,7 +120,7 @@ export default function TutesPage() {
           </select>
         </div>
         
-        <button className="btn btn-secondary rounded-xl hover-scale" onClick={load}>
+        <button className="btn btn-secondary rounded-xl hover-scale w-full md-w-auto" onClick={load}>
           Refresh Data
         </button>
       </div>

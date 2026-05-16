@@ -59,33 +59,35 @@ export default function AttendancePage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
+        <div className="flex flex-wrap md-flex-nowrap items-center gap-3 w-full md-w-auto">
           <select 
-            className="form-select" 
+            className="form-select flex-1 md-flex-none" 
             value={selectedClass} 
             onChange={e => setSelectedClass(e.target.value)}
-            style={{ width: 200 }}
+            style={{ minWidth: 200, height: 44, borderRadius: 12 }}
           >
             <option value="">Select Class</option>
             {classes.map(c => (
               <option key={c.id} value={c.id}>{c.grade} - {c.subject}</option>
             ))}
           </select>
-          <div className="flex items-center gap-2 bg-card p-2 rounded-md border border-border">
+          <div className="flex items-center gap-2 bg-card p-2 rounded-xl border border-border flex-1 md-flex-none" style={{height:44, minWidth:180}}>
             <Calendar size={16} className="text-muted" />
             <input 
               type="date" 
               className="form-input border-none p-0 bg-transparent" 
               value={date} 
               onChange={e => setDate(e.target.value)} 
+              style={{width:'100%'}}
             />
           </div>
         </div>
         <button 
-          className="btn btn-primary" 
+          className="btn btn-primary glow-primary rounded-xl hover-scale px-6 w-full md-w-auto" 
           onClick={handleSave} 
           disabled={saving || !selectedClass}
+          style={{height:44}}
         >
           <Save size={18} /> {saving ? 'Saving...' : 'Save Attendance'}
         </button>

@@ -146,16 +146,16 @@ export default function WhatsAppPage() {
   return (<div>
     {/* Status Bar */}
     <div className="card mb-4" style={{padding:16}}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           {isReady ? <Wifi size={20} style={{color:'var(--accent-success)'}}/> : <WifiOff size={20} style={{color:'var(--accent-danger)'}}/>}
           <span style={{fontWeight:600}}>WhatsApp: {waStatus.status?.replace('_',' ').toUpperCase()}</span>
           {waStatus.status === 'qr_pending' && <span className="badge badge-warning">Scan QR below</span>}
           {waStatus.status === 'initializing' && <span className="badge badge-info animate-pulse">Starting up...</span>}
         </div>
-        <div className="flex gap-2">
-          <button className="btn btn-secondary btn-sm" onClick={restart}><RefreshCw size={14}/>Restart</button>
-          {isReady && <button className="btn btn-danger btn-sm" onClick={logoutWA}><Unplug size={14}/>Disconnect</button>}
+        <div className="flex gap-2 w-full md-w-auto">
+          <button className="btn btn-secondary btn-sm flex-1 md-flex-none" onClick={restart}><RefreshCw size={14}/>Restart</button>
+          {isReady && <button className="btn btn-danger btn-sm flex-1 md-flex-none" onClick={logoutWA}><Unplug size={14}/>Disconnect</button>}
         </div>
       </div>
     </div>
@@ -164,10 +164,10 @@ export default function WhatsAppPage() {
     {displayQR && (<div className="card mb-4"><div className="qr-container"><h3>📱 Scan QR Code</h3><img src={displayQR} alt="QR Code"/><p className="text-sm text-muted">Open WhatsApp → Linked Devices → Link a Device</p></div></div>)}
 
     {/* Tabs */}
-    <div className="flex gap-2 mb-4">
-      <button className={`btn ${tab==='send'?'btn-primary':'btn-secondary'} btn-sm`} onClick={()=>setTab('send')}><Send size={14}/>Direct Send</button>
-      <button className={`btn ${tab==='broadcast'?'btn-primary':'btn-secondary'} btn-sm`} onClick={()=>setTab('broadcast')}><Megaphone size={14}/>Broadcast</button>
-      <button className={`btn ${tab==='conversations'?'btn-primary':'btn-secondary'} btn-sm`} onClick={()=>setTab('conversations')}><MessageCircle size={14}/>Chat Logs</button>
+    <div className="flex flex-wrap gap-2 mb-4">
+      <button className={`btn ${tab==='send'?'btn-primary':'btn-secondary'} btn-sm flex-1 md-flex-none`} onClick={()=>setTab('send')}><Send size={14}/>Direct Send</button>
+      <button className={`btn ${tab==='broadcast'?'btn-primary':'btn-secondary'} btn-sm flex-1 md-flex-none`} onClick={()=>setTab('broadcast')}><Megaphone size={14}/>Broadcast</button>
+      <button className={`btn ${tab==='conversations'?'btn-primary':'btn-secondary'} btn-sm flex-1 md-flex-none`} onClick={()=>setTab('conversations')}><MessageCircle size={14}/>Chat Logs</button>
     </div>
 
     {/* Content Area */}
@@ -224,9 +224,9 @@ export default function WhatsAppPage() {
           </div>
         )}
         <div className="form-group"><label className="form-label">Message</label><textarea className="form-textarea" value={broadcastMsg} onChange={e=>setBroadcastMsg(e.target.value)} rows={5} placeholder="Type announcement..."/></div>
-        <div className="flex gap-3">
-          <button className="btn btn-primary" onClick={broadcast} disabled={sending||!isReady}><Megaphone size={16}/>{sending?'Sending...':'Broadcast'}</button>
-          <button className="btn btn-secondary" onClick={()=>aiRephrase(broadcastMsg,setBroadcastMsg)} disabled={aiLoading||!broadcastMsg}><Wand2 size={16}/>AI Rephrase</button>
+        <div className="flex flex-wrap gap-3">
+          <button className="btn btn-primary flex-1 md-flex-none" onClick={broadcast} disabled={sending||!isReady}><Megaphone size={16}/>{sending?'Sending...':'Broadcast'}</button>
+          <button className="btn btn-secondary flex-1 md-flex-none" onClick={()=>aiRephrase(broadcastMsg,setBroadcastMsg)} disabled={aiLoading||!broadcastMsg}><Wand2 size={16}/>AI Rephrase</button>
         </div>
       </div>)}
 

@@ -81,23 +81,23 @@ export default function StudentsPage() {
       </div>
 
       {/* Controls Header */}
-      <div className="glass-card p-6 rounded-2xl mb-8 flex items-center justify-between shadow-glow">
-        <div className="flex items-center gap-4">
-          <div className="search-bar">
+      <div className="glass-card p-6 rounded-2xl mb-8 flex flex-wrap items-center justify-between gap-6 shadow-glow">
+        <div className="flex flex-wrap md-flex-nowrap items-center gap-3 w-full md-w-auto">
+          <div className="search-bar w-full md-w-260">
             <Search className="search-icon" size={18}/>
             <input 
               className="form-input" 
               placeholder="Search by name or phone..." 
-              style={{paddingLeft:42, width:300, height:44, borderRadius:12}} 
+              style={{paddingLeft:42, width:'100%', height:44, borderRadius:12}} 
               value={search} 
               onChange={e=>setSearch(e.target.value)}
             />
           </div>
-          <select className="form-select" value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)} style={{width:140, height:44, borderRadius:12}}>
+          <select className="form-select flex-1 md-flex-none" value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)} style={{minWidth:120, maxWidth:130, height:44, borderRadius:12}}>
             <option value="">All Grades</option>
             {allGrades.map(g=><option key={g} value={g}>{g}</option>)}
           </select>
-          <select className="form-select" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{width:140, height:44, borderRadius:12}}>
+          <select className="form-select flex-1 md-flex-none" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{minWidth:120, maxWidth:130, height:44, borderRadius:12}}>
             <option value="">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
@@ -105,7 +105,7 @@ export default function StudentsPage() {
           </select>
         </div>
         
-        <button className="btn btn-primary glow-primary rounded-xl hover-scale px-6" onClick={openCreate} style={{height:44}}>
+        <button className="btn btn-primary glow-primary rounded-xl hover-scale px-6 w-full md-w-auto" onClick={openCreate} style={{height:44}}>
           <Plus size={20}/> Add New Student
         </button>
       </div>
