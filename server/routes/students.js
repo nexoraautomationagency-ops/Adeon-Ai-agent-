@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
   const params = [req.tutor.id];
   if (grade) { where += ' AND grade = ?'; params.push(grade); }
   if (status) { where += ' AND status = ?'; params.push(status); }
-  if (search) { where += ' AND (name LIKE ? OR phone LIKE ? OR school LIKE ?)'; const s = `%${search}%`; params.push(s, s, s); }
+  if (search) { where += ' AND (name ILIKE ? OR phone ILIKE ? OR school ILIKE ?)'; const s = `%${search}%`; params.push(s, s, s); }
 
   const totalRes = await dbGet(`SELECT COUNT(*) as total FROM students ${where}`, params);
   const total = totalRes ? totalRes.total : 0;

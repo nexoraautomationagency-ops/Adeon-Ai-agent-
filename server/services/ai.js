@@ -360,7 +360,7 @@ Return STRICT JSON ONLY:
           
           let master;
           if (requestedGrade) {
-            master = await dbGet("SELECT content FROM knowledge_base WHERE category = 'FAQ' AND content LIKE ? AND tutor_id = ? LIMIT 1", [`%grade ${requestedGrade}%`, tutorId]);
+            master = await dbGet("SELECT content FROM knowledge_base WHERE category = 'FAQ' AND content ILIKE ? AND tutor_id = ? LIMIT 1", [`%grade ${requestedGrade}%`, tutorId]);
           }
           
           if (!master) {

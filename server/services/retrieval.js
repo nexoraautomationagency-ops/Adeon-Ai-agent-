@@ -231,7 +231,7 @@ class RetrievalService {
         const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
         if (words.length > 0) {
           let searchSql = 'SELECT student_message, ideal_reply FROM knowledge_examples WHERE ';
-          const conditions = words.map(() => '(student_message LIKE ? OR ideal_reply LIKE ?)').join(' OR ');
+          const conditions = words.map(() => '(student_message ILIKE ? OR ideal_reply ILIKE ?)').join(' OR ');
           searchSql += conditions + ' ORDER BY RANDOM() LIMIT ?';
           
           const params = [];
