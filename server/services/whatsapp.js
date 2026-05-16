@@ -615,9 +615,11 @@ Show this help message.`;
         if (gradeNum >= 6 && gradeNum <= 9) dynamicFee = 1200;
         else if (gradeNum >= 10 && gradeNum <= 11) dynamicFee = 1500;
 
-        const existingPayment = await dbGet('SELECT id FROM payments WHERE student_id = ? AND month = ? AND year = ?', [sid, month, year]);
+        const existingPayment = await dbGet('SELECT id, amount FROM payments WHERE student_id = ? AND month = ? AND year = ?', [sid, month, year]);
         if (!existingPayment) {
           await dbRun('INSERT INTO payments (tutor_id, student_id, amount, month, year, status) VALUES (?,?,?,?,?,?)', [tutorId, sid, dynamicFee, month, year, 'unpaid']);
+        } else if (existingPayment.amount === 0 || existingPayment.amount === '0') {
+          await dbRun('UPDATE payments SET amount = ? WHERE id = ?', [dynamicFee, existingPayment.id]);
         }
         this.emit('db_update', { tutor_id: tutorId, table: 'students', action: studentId ? 'update_enrollment' : 'new_enrollment', name });
       }
