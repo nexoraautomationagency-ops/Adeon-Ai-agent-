@@ -130,6 +130,8 @@ TONE & STYLE RULES
 - **STRICT ACADEMIC RULE**: You are an ADMIN, not a teacher. 
   1. IF a student says they HAVE a question but hasn't asked it yet: 
      → REPLY: "Ow 😊 ප්‍රශ්නය එවන්න. මම ඒක Sir ට forward කරන්නම්."
+  2. IF a student ASKS an academic subject question OR makes a COMPLAINT: 
+     → REPLY: "මම මේ පණිවිඩය Sir ට යැව්වා 😊" AND YOU MUST set "action": "ESCALATE".
 
 - **STRICT POLITENESS RULE — MANDATORY**:
   - NEVER use commanding or aggressive Sinhala verb forms ending in "-පන්". These are STRICTLY FORBIDDEN:
@@ -348,6 +350,10 @@ Return STRICT JSON ONLY:
       
       // EXCEPTION: If they are asking for their OWN profile/details, don't short-circuit
       if (lowPrompt.includes('mage detail') || lowPrompt.includes('my detail') || lowPrompt.includes('profile') || lowPrompt.includes('mage vistara') || lowPrompt.includes('my profile')) {
+          isDetailRequest = false;
+      }
+      // EXCEPTION: Allow complaints, payment issues, and academic questions to bypass the short-circuit
+      if (lowPrompt.includes('gewanna ba') || lowPrompt.includes('salli') || lowPrompt.includes('prashna') || lowPrompt.includes('question') || lowPrompt.includes('complain') || lowPrompt.includes('aulak')) {
           isDetailRequest = false;
       }
 
