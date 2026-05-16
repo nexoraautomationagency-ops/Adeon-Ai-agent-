@@ -976,3 +976,41 @@ body {
 .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
 .shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent); background-size: 200% 100%; animation: shimmer 2s infinite; }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+/* ===== Mobile Responsiveness ===== */
+@media (max-width: 768px) {
+  /* Stat Cards */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .stat-card {
+    padding: 16px;
+  }
+  
+  .stat-card .stat-icon {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 8px;
+  }
+  
+  .stat-card .stat-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .stat-value {
+    font-size: 20px;
+  }
+  
+  .stat-label {
+    font-size: 11px;
+  }
+
+  /* Form Rows */
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}

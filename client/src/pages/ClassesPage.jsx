@@ -32,10 +32,10 @@ export default function ClassesPage() {
   return (<div>
     <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
       <div className="flex gap-3"><span className="badge badge-info">Total: {classes.length}</span><span className="badge badge-success">Active: {classes.filter(c=>c.is_active).length}</span></div>
-      <button className="btn btn-primary glow-primary rounded-xl hover-scale px-6 w-full md-w-auto" onClick={openCreate} style={{height:44}}><Plus size={18}/>Add Class</button>
+      <button className="btn btn-primary glow-primary rounded-xl hover-scale px-6 w-full md:w-auto" onClick={openCreate} style={{height:44}}><Plus size={18}/>Add Class</button>
     </div>
     {loading ? <div className="loading-spinner"/> : classes.length === 0 ? <div className="empty-state"><div className="empty-icon">📚</div><h3>No classes yet</h3><p>Create your first class schedule</p><button className="btn btn-primary" onClick={openCreate}><Plus size={18}/>Add Class</button></div> : (
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:20}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:20}}>
         {classes.map(c => (
           <div className="card" key={c.id} style={{position:'relative',overflow:'hidden'}}>
             <div style={{position:'absolute',top:0,left:0,right:0,height:3,background:dayColors[c.day_of_week]||'#6366f1'}}/>
