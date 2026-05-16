@@ -437,7 +437,9 @@ Show this help message.`;
           if (aiResponse.command === 'REGISTER_STUDENT' && aiResponse.data) {
             await this._handleRegistration(aiResponse.data, senderId, actualPhone);
           } else if (aiResponse.command === 'ESCALATE' || aiResponse.intent === 'COMPLAIN') {
-            const student = await dbGet('SELECT name, grade FROM students WHERE whatsapp_id = ? OR phone = ?', [senderId, actualPhone]);
+            const cleanPhone = actualPhone.replace(/\D/g, '');
+            const suffix = (cleanPhone && cleanPhone.length >= 9) ? cleanPhone.slice(-9) : (cleanPhone || '');
+            const student = await dbGet('SELECT name, grade FROM students WHERE whatsapp_id = ? OR phone LIKE ?', [senderId, `%${suffix}`]);
             const displayName = student?.name ? `${student.name} (Grade ${student.grade})` : actualPhone;
             await this.notifyAdmin(`⚠️ *Alert from Chat*\n👤 *From:* ${displayName}\n💬 *Message:* "${combinedBody}"\nPlease check the chat!`);
           } else if (aiResponse.command === 'CONFIRM_DELIVERY') {
