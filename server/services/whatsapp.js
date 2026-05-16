@@ -480,13 +480,6 @@ Show this help message.`;
     try {
       const media = await msg.downloadMedia();
       if (!media) return;
-      
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const bucketExists = buckets?.find(b => b.name === 'receipts');
-      if (!bucketExists) {
-        await supabase.storage.createBucket('receipts', { public: true });
-        console.log('[Supabase] ☁️ Created missing receipts bucket.');
-      }
 
       const filename = `receipt_${Date.now()}_${actualPhone}.${media.mimetype.split('/')[1]}`;
       const { error } = await supabase.storage.from('receipts').upload(filename, Buffer.from(media.data, 'base64'), { contentType: media.mimetype, upsert: true });
