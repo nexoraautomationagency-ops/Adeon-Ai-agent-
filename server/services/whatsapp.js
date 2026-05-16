@@ -89,17 +89,10 @@ class WhatsAppService extends EventEmitter {
       }
 
       this.client = new Client({
-        authStrategy: isProd 
-          ? new RemoteAuth({ 
-              clientId: `tutor-${tutorId}`, 
-              dataPath: baseSessionPath,
-              store: store,
-              backupSyncIntervalMs: 300000 
-            })
-          : new LocalAuth({ 
-              clientId: `tutor-${tutorId}`, 
-              dataPath: baseSessionPath
-            }),
+        authStrategy: new LocalAuth({ 
+          clientId: `tutor-${tutorId}`, 
+          dataPath: baseSessionPath
+        }),
         webVersionCache: {
           type: 'remote',
           remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
