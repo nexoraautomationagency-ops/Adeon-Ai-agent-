@@ -49,7 +49,8 @@ router.post('/login', async (req, res, next) => {
 });
 
 router.get('/me', require('../middleware/auth').authMiddleware, async (req, res) => {
-  const tutor = await dbGet('SELECT id, name, email, phone, role, institute_name, created_at FROM tutors WHERE id = ?', [req.tutor.id]);
+  const targetId = req.tutor.staff_id || req.tutor.id;
+  const tutor = await dbGet('SELECT id, name, email, phone, role, institute_name, created_at FROM tutors WHERE id = ?', [targetId]);
   if (!tutor) return res.status(404).json({ error: 'Tutor not found' });
   res.json({ tutor });
 });
