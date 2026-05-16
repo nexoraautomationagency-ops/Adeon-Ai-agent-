@@ -340,7 +340,13 @@ Return STRICT JSON ONLY:
 
       // AGGRESSIVE SHORT-CIRCUIT: Tute Confirmation & Details
       const lowPrompt = prompt.toLowerCase();
-      const isDetailRequest = (lowPrompt.includes('detail') || lowPrompt.includes('fees') || lowPrompt.includes('keeyada') || lowPrompt.includes('denna') || (lowPrompt.includes('mata') && lowPrompt.includes('ona')));
+      let isDetailRequest = (lowPrompt.includes('detail') || lowPrompt.includes('fees') || lowPrompt.includes('keeyada') || lowPrompt.includes('denna') || (lowPrompt.includes('mata') && lowPrompt.includes('ona')));
+      
+      // EXCEPTION: If they are asking for their OWN profile/details, don't short-circuit
+      if (lowPrompt.includes('mage detail') || lowPrompt.includes('my detail') || lowPrompt.includes('profile') || lowPrompt.includes('mage vistara') || lowPrompt.includes('my profile')) {
+          isDetailRequest = false;
+      }
+
       const isDeliveryConfirm = (lowPrompt.includes('labuna') || lowPrompt.includes('laba') || lowPrompt.includes('hambuna') || lowPrompt.includes('hambana') || lowPrompt.includes('received') || lowPrompt.includes('badu') || lowPrompt.includes('awa'));
 
       if (isDeliveryConfirm) {
