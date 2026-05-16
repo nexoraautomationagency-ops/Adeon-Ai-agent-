@@ -492,6 +492,9 @@ Show this help message.`;
       const phoneSuffix = (phoneOnly && phoneOnly.length >= 9) ? phoneOnly.slice(-9) : (phoneOnly || '');
       const variants = [senderId, senderId.replace('@c.us', '@lid'), senderId.replace('@lid', '@c.us')];
       
+      const tutor = await dbGet("SELECT id FROM tutors ORDER BY role = 'developer' DESC, id ASC LIMIT 1");
+      const tutorId = tutor?.id || 1;
+
       let student = await dbGet(`
         SELECT id FROM students 
         WHERE whatsapp_id IN (?, ?, ?) 
@@ -500,7 +503,7 @@ Show this help message.`;
 
       if (!student) {
         const res = await dbRun('INSERT INTO students (tutor_id, whatsapp_id, status, normalized_phone, phone, notes) VALUES (?, ?, ?, ?, ?, ?) RETURNING id', 
-          [1, senderId, 'lead', normalizedActual, actualPhone, 'Uploaded receipt before registration']);
+          [tutorId, senderId, 'lead', normalizedActual, actualPhone, 'Uploaded receipt before registration']);
         student = { id: res.lastInsertRowid };
       }
 
@@ -511,7 +514,7 @@ Show this help message.`;
         const updatedUrls = payment.receipt_url ? `${payment.receipt_url},${publicUrl}` : publicUrl;
         await dbRun("UPDATE payments SET receipt_url = ?, status = 'pending' WHERE id = ?", [updatedUrls, payment.id]);
       } else {
-        await dbRun("INSERT INTO payments (tutor_id, student_id, amount, month, year, status, receipt_url) VALUES (?, ?, ?, ?, ?, 'pending', ?)", [1, student.id, 0, currentMonth, currentYear, publicUrl]);
+        await dbRun("INSERT INTO payments (tutor_id, student_id, amount, month, year, status, receipt_url) VALUES (?, ?, ?, ?, ?, 'pending', ?)", [tutorId, student.id, 0, currentMonth, currentYear, publicUrl]);
       }
 
       const studentInfo = await dbGet('SELECT name, phone FROM students WHERE id = ?', [student.id]);
