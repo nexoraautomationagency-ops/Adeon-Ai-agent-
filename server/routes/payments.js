@@ -80,8 +80,14 @@ async function handlePaymentSuccess(tutor, paymentId, studentId, month, year) {
             ? `✅ *Payment Approved*\n\n*Student:* ${student.name}\n*Grade:* ${student.grade}\n*Month:* ${month}\n\nStudent has been added to *${groupName}* successfully.`
             : `✅ *Payment Approved*\n\n*Student:* ${student.name}\n*Grade:* ${student.grade}\n*Month:* ${month}\n\n⚠️ Could not add to group automatically. Please add manually.\n*(Check: student has a valid phone number saved)*`;
         await whatsappService.notifyAdmin(statusMsg);
+
+        // Notify STUDENT (Requested by user)
+        const target = student.whatsapp_id && student.whatsapp_id.includes('@') ? student.whatsapp_id : student.phone;
+        if (target) {
+            await whatsappService.sendToPhone(target, `Your registration for ${month} has been approved. Welcome to the class! ✅`);
+        }
     } catch (e) {
-        console.error('[Automation] Admin notify failed:', e.message);
+        console.error('[Automation] Notify failed:', e.message);
     }
   } catch (err) {
     console.error('[Payment Automation Error]', err.message);
