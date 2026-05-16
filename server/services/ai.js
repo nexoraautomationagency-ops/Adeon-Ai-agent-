@@ -335,7 +335,7 @@ Return STRICT JSON ONLY:
             studentContext = await retrievalService.getStudentContext(chatId);
           } else {
             // Create lead with correct tenant isolation
-            const res = await dbRun('INSERT INTO students (tutor_id, whatsapp_id, status) VALUES (?, ?, ?)', [tutorId, chatId, 'lead']);
+            const res = await dbRun('INSERT INTO students (tutor_id, whatsapp_id, status) VALUES (?, ?, ?) RETURNING id', [tutorId, chatId, 'lead']);
             studentContext = { id: res.lastInsertRowid, status: 'lead' };
           }
         } catch (e) {

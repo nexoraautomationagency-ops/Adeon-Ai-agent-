@@ -498,7 +498,7 @@ Show this help message.`;
       `, [...variants, normalizedActual]);
 
       if (!student) {
-        const res = await dbRun('INSERT INTO students (tutor_id, whatsapp_id, status, normalized_phone, phone, notes) VALUES (?, ?, ?, ?, ?, ?)', 
+        const res = await dbRun('INSERT INTO students (tutor_id, whatsapp_id, status, normalized_phone, phone, notes) VALUES (?, ?, ?, ?, ?, ?) RETURNING id', 
           [1, senderId, 'lead', normalizedActual, actualPhone, 'Uploaded receipt before registration']);
         student = { id: res.lastInsertRowid };
       }
@@ -518,11 +518,12 @@ Show this help message.`;
       // Fixed: Send a warm acknowledgment message
       const ackMessage = "Hari 😊 Receipt එක ලැබුණා. Admin ඒක check කරලා ඉක්මනටම ඔයාව group එකට add කරයි. පැය 24ක් ඇතුළත ඔයාට confirmation message එකක් ලැබෙයි. 👍";
 
-      if (studentInfo.name) {
+      if (studentInfo && studentInfo.name) {
         await this.notifyAdmin(`📸 *Payment Receipt Received*\n👤 *Student:* ${studentInfo.name}\n📱 *Phone:* ${studentInfo.phone}\n📅 *Month:* ${currentMonth}\n🔗 *Receipt:* ${publicUrl}\n\nTo approve, type: *approve ${studentInfo.phone} ${currentMonth}*`, media);
         await this.sendMessage(senderId, ackMessage);
       } else {
-        await this.notifyAdmin(`📸 *Receipt from Unknown Student*\n📱 From: ${actualPhone}\n🔗 Link: ${publicUrl}`, media);
+        const phoneDesc = studentInfo?.phone || actualPhone;
+        await this.notifyAdmin(`📸 *Receipt from Unknown Student*\n📱 From: ${phoneDesc}\n🔗 Link: ${publicUrl}`, media);
         const unknownSOP = "ඔයාගේ receipt එක ලැබුණා 😊 හැබැයි ඔයා තාම register වෙලා නැහැ වගේ. කරුණාකරලා ඔයාගේ විස්තර ටික එවන්න. (Name, Grade, School, Phone, Address සහ join වෙන Month එක)";
         await this.sendMessage(senderId, unknownSOP);
       }
