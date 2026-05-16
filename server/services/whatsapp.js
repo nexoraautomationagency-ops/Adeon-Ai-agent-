@@ -64,7 +64,7 @@ class WhatsAppService extends EventEmitter {
       // Fix Bug 46: Support for multitenant sessions if needed
       let tutorId = 1;
       try {
-         const tutor = await dbGet('SELECT id FROM tutors LIMIT 1');
+         const tutor = await dbGet("SELECT id FROM tutors ORDER BY role = 'developer' DESC, id ASC LIMIT 1");
          if (tutor) tutorId = tutor.id;
       } catch(e) {}
       
@@ -274,7 +274,7 @@ class WhatsAppService extends EventEmitter {
       if (myPhoneNormalized) {
         tutor = await dbGet('SELECT * FROM tutors WHERE phone = ? OR phone LIKE ?', [myPhone, '%' + myPhoneNormalized.slice(-9)]);
       }
-      if (!tutor) tutor = await dbGet('SELECT * FROM tutors LIMIT 1');
+      if (!tutor) tutor = await dbGet("SELECT * FROM tutors ORDER BY role = 'developer' DESC, id ASC LIMIT 1");
       
       if (tutor) {
         const settings = await dbGet('SELECT * FROM settings WHERE tutor_id = ?', [tutor.id]);
@@ -530,7 +530,7 @@ Show this help message.`;
     const year = new Date().getFullYear();
 
     try {
-      const tutor = await dbGet('SELECT id FROM tutors LIMIT 1');
+      const tutor = await dbGet("SELECT id FROM tutors ORDER BY role = 'developer' DESC, id ASC LIMIT 1");
       const tutorId = tutor?.id || 1;
       const settings = await dbGet('SELECT basic_fee FROM settings WHERE tutor_id = ?', [tutorId]);
       const normalizedGrade = normalizationService.normalizeGrade(grade);
@@ -703,7 +703,7 @@ Show this help message.`;
     if (!this.isReady) return { success: false, error: 'WhatsApp not ready' };
     try {
       // Get Tutor's phone to add them as admin
-      const tutor = await dbGet('SELECT phone FROM tutors LIMIT 1');
+      const tutor = await dbGet("SELECT phone FROM tutors ORDER BY role = 'developer' DESC, id ASC LIMIT 1");
       let finalParticipants = [...participants];
       if (tutor?.phone) {
           const tutorId = this._normalizePhone(tutor.phone);
@@ -791,7 +791,7 @@ Show this help message.`;
   }
 
   async notifyAdmin(message, media = null) {
-    const tutor = await dbGet('SELECT phone FROM tutors LIMIT 1');
+    const tutor = await dbGet("SELECT phone FROM tutors ORDER BY role = 'developer' DESC, id ASC LIMIT 1");
     if (!tutor?.phone) return;
     const target = this._normalizePhone(tutor.phone);
     try { if (media) await this.client.sendMessage(target, media, { caption: message }); else await this.client.sendMessage(target, message); } catch (e) { }
