@@ -528,7 +528,7 @@ Show this help message.`;
       } else {
         const phoneDesc = studentInfo?.phone || actualPhone;
         await this.notifyAdmin(`📸 *Receipt from Unknown Student*\n📱 From: ${phoneDesc}\n🔗 Link: ${publicUrl}`, media);
-        const unknownSOP = "ඔයාගේ receipt එක ලැබුණා 😊 හැබැයි ඔයා තාම register වෙලා නැහැ වගේ. කරුණාකරලා ඔයාගේ විස්තර ටික එවන්න. (Name, Grade, School, Phone, Address සහ join වෙන Month එක)";
+        const unknownSOP = "ඔයාගේ receipt එක ලැබුණා 😊 හැබැයි ඔයා තාම register වෙලා නැහැ වගේ. කරුණාකරලා ඔයාගේ විස්තර ටික එවන්න. (Name, Grade, School, Phone, Month සහ Address)";
         await this.sendMessage(senderId, unknownSOP);
       }
       this.emit('db_update', { tutor_id: this._tutorCache?.id || 1, table: 'payments', action: 'receipt_received', student_id: student.id });

@@ -113,6 +113,11 @@ class AIService {
     const missingFields = this._getMissingFields(studentContext);
     const receiptInstruction = context.receipt_instruction || '';
 
+    const isReceiptUploaded = studentContext.notes === 'Uploaded receipt before registration';
+    const finalPaymentLine = isReceiptUploaded
+      ? "Hari 😊 Receipt එක ලැබුණා. Admin ඒක check කරලා ඉක්මනටම ඔයාව group එකට add කරයි. පැය 24ක් ඇතුළත ඔයාට confirmation message එකක් ලැබෙයි. 👍"
+      : "කරුණාකර payment එක කරලා receipt එක මෙතනට එවන්න. ඊට පස්සේ ඔයාව official WhatsApp group එකට add කරන්නම්. 😊";
+
     return `
 You are a natural Sri Lankan class admin chatting through WhatsApp. Warm, fast, slightly casual, human.
 - Name: ${tutorContext.tutor?.institute_name || 'class'} Admin.
@@ -159,7 +164,8 @@ REGISTRATION WORKFLOW (SOP)
 
     - **STRICT COMPLETION CHECK**:
       - You MUST verify that ALL 6 fields are present: Name, Grade, School, Phone, Month, and Address.
-      - If even ONE field (like Month) is missing, DO NOT send the "Successfully Registered" message. Instead, ask for the missing field politely.
+      - If even ONE field is missing, DO NOT send the "Successfully Registered" message.
+      - IMPORTANT: DO NOT list or confirm the details you already have. ONLY ask a simple, direct question for the missing fields. (Example: "Grade එක සහ Month එක එවන්න 😊")
 
     - **GENERAL INQUIRY RULE**:
       - If the student asks for details, fees, bank info, or "mata details ewanna", you MUST respond with the exact *MASTER_TEMPLATE* provided in the context.
@@ -193,7 +199,7 @@ REGISTRATION WORKFLOW (SOP)
         
         📍🖊️ Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
         
-        කරුණාකර payment එක කරලා receipt එක මෙතනට එවන්න. ඊට පස්සේ ඔයාව official WhatsApp group එකට add කරන්නම්. 😊"
+        ${finalPaymentLine}"
       - DO NOT ask for confirmation. DO NOT wait for another message.
 
 
