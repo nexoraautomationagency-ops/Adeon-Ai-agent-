@@ -125,7 +125,7 @@ function AppLayout() {
             <Route path="/classes" element={<ClassesPage />} />
             <Route path="/payments" element={<PaymentsPage />} />
             <Route path="/whatsapp" element={<WhatsAppPage />} />
-            <Route path="/knowledge" element={<KnowledgePage />} />
+            <Route path="/knowledge" element={tutor?.role === 'developer' ? <KnowledgePage /> : <Navigate to="/" />} />
             <Route path="/tutes" element={<TutesPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/attendance" element={<AttendancePage />} />

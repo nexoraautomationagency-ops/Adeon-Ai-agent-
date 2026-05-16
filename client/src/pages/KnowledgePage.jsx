@@ -1,9 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Brain, Trash2, Plus, MessageSquare, BookOpen, Search, Filter, Sparkles, Download } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import toast from 'react-hot-toast';
 
 export default function KnowledgePage() {
+  const { tutor } = useAuth();
+  
+  // FINAL SAFETY GATE: Redirect if not developer
+  if (tutor?.role !== 'developer') {
+    return <Navigate to="/" />;
+  }
+
   const [facts, setFacts] = useState([]);
   const [examples, setExamples] = useState([]);
   const [loading, setLoading] = useState(true);

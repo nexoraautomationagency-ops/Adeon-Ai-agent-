@@ -142,32 +142,34 @@ export default function SettingsPage() {
       <p className="text-sm text-muted mt-2">Note: These are default values. You can still set custom fees for individual students in the Students page.</p>
     </div>
 
-    <div className="card mb-4">
-      <h3 className="card-title mb-4">🎓 Academic Cycle</h3>
-      <div className="form-group mb-4">
-        <label className="form-label">Graduation Grade (Final Year)</label>
-        <input 
-          className="form-input" 
-          type="number" 
-          placeholder="e.g. 11 for O/L, 13 for A/L"
-          value={settings.final_grade || 11} 
-          onChange={e => setSettings({...settings, final_grade: parseInt(e.target.value)})}
-        />
-        <p className="text-xs text-muted mt-1">Students at this grade will be marked as "Graduated" when the year ends.</p>
+    {tutor?.role === 'developer' && (
+      <div className="card mb-4">
+        <h3 className="card-title mb-4">🎓 Academic Cycle</h3>
+        <div className="form-group mb-4">
+          <label className="form-label">Graduation Grade (Final Year)</label>
+          <input 
+            className="form-input" 
+            type="number" 
+            placeholder="e.g. 11 for O/L, 13 for A/L"
+            value={settings.final_grade || 11} 
+            onChange={e => setSettings({...settings, final_grade: parseInt(e.target.value)})}
+          />
+          <p className="text-xs text-muted mt-1">Students at this grade will be marked as "Graduated" when the year ends.</p>
+        </div>
+        
+        <div style={{padding: '16px', background: 'rgba(99,102,241,0.05)', borderRadius: '12px', border: '1px dashed var(--accent-primary)'}}>
+          <h4 style={{margin: '0 0 12px 0', fontSize: '15px', color: 'var(--accent-primary)', display:'flex', alignItems:'center', gap:8}}>
+            🚀 Year-End Promotion
+          </h4>
+          <button className="btn btn-secondary" style={{width: '100%', justifyContent: 'center', borderColor:'var(--accent-primary)', color:'var(--accent-primary)'}} onClick={runYearEnd}>
+            Run Year-End Student Promotion
+          </button>
+          <p className="text-[10px] text-muted mt-2 text-center uppercase tracking-wider">
+            Warning: This action is irreversible. It will promote all active students by one grade.
+          </p>
+        </div>
       </div>
-      
-      <div style={{padding: '16px', background: 'rgba(99,102,241,0.05)', borderRadius: '12px', border: '1px dashed var(--accent-primary)'}}>
-        <h4 style={{margin: '0 0 12px 0', fontSize: '15px', color: 'var(--accent-primary)', display:'flex', alignItems:'center', gap:8}}>
-          🚀 Year-End Promotion
-        </h4>
-        <button className="btn btn-secondary" style={{width: '100%', justifyContent: 'center', borderColor:'var(--accent-primary)', color:'var(--accent-primary)'}} onClick={runYearEnd}>
-          Run Year-End Student Promotion
-        </button>
-        <p className="text-[10px] text-muted mt-2 text-center uppercase tracking-wider">
-          Warning: This action is irreversible. It will promote all active students by one grade.
-        </p>
-      </div>
-    </div>
+    )}
     <div className="card mb-4">
       <h3 className="card-title mb-4">⚙️ Auto-Reply Settings</h3>
       <Toggle label="Enable Auto-Reply" value={!!settings.auto_reply_enabled} onChange={v=>setSettings({...settings,auto_reply_enabled:v?1:0})}/>
@@ -247,16 +249,18 @@ export default function SettingsPage() {
       <Toggle label="Enable Payment Reminders" value={!!settings.payment_reminder_enabled} onChange={v=>setSettings({...settings,payment_reminder_enabled:v?1:0})}/>
       <div className="form-group mt-4"><label className="form-label">Reminder Day of Month</label><input className="form-input" type="number" min="1" max="28" value={settings.payment_reminder_day||1} onChange={e=>setSettings({...settings,payment_reminder_day:parseInt(e.target.value)})}/></div>
     </div>
-    <div className="card mb-4">
-      <h3 className="card-title mb-4">🤖 AI Tone</h3>
-      <div className="form-group"><label className="form-label">Communication Style</label>
-        <select className="form-select" value={settings.ai_tone||'friendly_sinhala_english'} onChange={e=>setSettings({...settings,ai_tone:e.target.value})}>
-          <option value="friendly_sinhala_english">Friendly Sinhala-English Mix 🇱🇰</option>
-          <option value="formal_english">Formal English</option>
-          <option value="casual_english">Casual English</option>
-        </select>
+    {tutor?.role === 'developer' && (
+      <div className="card mb-4">
+        <h3 className="card-title mb-4">🤖 AI Tone</h3>
+        <div className="form-group"><label className="form-label">Communication Style</label>
+          <select className="form-select" value={settings.ai_tone||'friendly_sinhala_english'} onChange={e=>setSettings({...settings,ai_tone:e.target.value})}>
+            <option value="friendly_sinhala_english">Friendly Sinhala-English Mix 🇱🇰</option>
+            <option value="formal_english">Formal English</option>
+            <option value="casual_english">Casual English</option>
+          </select>
+        </div>
       </div>
-    </div>
+    )}
     <div className="card mb-4">
       <h3 className="card-title mb-4">👥 Secondary Admins (WhatsApp)</h3>
       <p className="text-sm text-muted mb-4">These phone numbers can also control the bot via WhatsApp commands.</p>
@@ -370,33 +374,31 @@ export default function SettingsPage() {
                     />
                   </td>
                   <td>
-                    {tutor?.role === 'developer' && (
-                      mapping?.whatsapp_group_id ? (
-                        <div className="flex items-center gap-1 text-success font-bold text-xs">
-                          <CheckCircle size={14} /> Linked
-                        </div>
-                      ) : (
-                        <button 
-                          className="btn btn-ghost btn-xs text-accent"
-                          disabled={isCreatingGroup}
-                          onClick={async () => {
-                            if (!confirm(`Create new WhatsApp group for ${c.grade} ${c.subject} (${selectedMonth})?`)) return;
-                            setIsCreatingGroup(true);
-                            try {
-                              const groupName = `${c.grade} ${c.subject} - ${selectedMonth} ${selectedYear}`;
-                              const res = await api.createWhatsAppGroup({ classId: c.id, month: selectedMonth, year: selectedYear, groupName });
-                              toast.success('Group Created & Mapped! ✅');
-                              api.getGroupMappings().then(d => setMappings(d.mappings || []));
-                            } catch (err) {
-                              toast.error(err.message);
-                            } finally {
-                              setIsCreatingGroup(false);
-                            }
-                          }}
-                        >
-                          {isCreatingGroup ? '...' : <Plus size={14} />} Create
-                        </button>
-                      )
+                    {mapping?.whatsapp_group_id ? (
+                      <div className="flex items-center gap-1 text-success font-bold text-xs">
+                        <CheckCircle size={14} /> Linked
+                      </div>
+                    ) : (
+                      <button 
+                        className="btn btn-ghost btn-xs text-accent"
+                        disabled={isCreatingGroup}
+                        onClick={async () => {
+                          if (!confirm(`Create new WhatsApp group for ${c.grade} ${c.subject} (${selectedMonth})?`)) return;
+                          setIsCreatingGroup(true);
+                          try {
+                            const groupName = `${c.grade} ${c.subject} - ${selectedMonth} ${selectedYear}`;
+                            const res = await api.createWhatsAppGroup({ classId: c.id, month: selectedMonth, year: selectedYear, groupName });
+                            toast.success('Group Created & Mapped! ✅');
+                            api.getGroupMappings().then(d => setMappings(d.mappings || []));
+                          } catch (err) {
+                            toast.error(err.message);
+                          } finally {
+                            setIsCreatingGroup(false);
+                          }
+                        }}
+                      >
+                        {isCreatingGroup ? '...' : <Plus size={14} />} Create
+                      </button>
                     )}
                   </td>
                 </tr>
