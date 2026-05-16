@@ -100,6 +100,11 @@ router.put('/settings', async (req, res) => {
   const settings = await dbGet('SELECT * FROM settings WHERE tutor_id=?', [req.tutor.id]);
   const tutor = await dbGet('SELECT institute_name FROM tutors WHERE id=?', [req.tutor.id]);
   
+  const whatsappService = require('../services/whatsapp');
+  if (typeof whatsappService.clearTutorCache === 'function') {
+    whatsappService.clearTutorCache();
+  }
+
   res.json({ settings: { ...settings, institute_name: tutor ? tutor.institute_name : '' } });
 });
 

@@ -41,6 +41,12 @@ class WhatsAppService extends EventEmitter {
     }, 60000);
   }
 
+  clearTutorCache() {
+    this._tutorCache = null;
+    this._settingsCache = null;
+    this._lastCacheUpdate = 0;
+  }
+
   async initialize() {
     if (this.isInitializing || this.isReady) return;
     this.isInitializing = true;
