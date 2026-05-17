@@ -1,5 +1,6 @@
 const express = require('express');
 const { dbRun, dbGet, dbAll } = require('../db/connection');
+const retrievalService = require('../services/retrieval');
 const router = express.Router();
 
 router.get('/', async (req, res) => {
@@ -19,6 +20,7 @@ router.post('/', async (req, res) => {
   if (!subject || !grade || !day_of_week || !start_time) return res.status(400).json({ error: 'Subject, grade, day, and start time required' });
   const result = await dbRun('INSERT INTO classes (tutor_id,subject,grade,day_of_week,start_time,end_time,location,max_students,notes,fee) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id',
     [req.tutor.id, subject, grade, day_of_week, start_time, end_time||null, location||'Online', max_students||50, notes||null, fee||0]);
+  retrievalService.clearTutorCache(req.tutor.id);
   res.status(201).json({ class: await dbGet('SELECT * FROM classes WHERE id = ?', [result.lastInsertRowid]) });
 });
 
@@ -28,12 +30,14 @@ router.put('/:id', async (req, res) => {
   const { subject, grade, day_of_week, start_time, end_time, location, max_students, is_active, notes, fee } = req.body;
   await dbRun('UPDATE classes SET subject=COALESCE(?,subject),grade=COALESCE(?,grade),day_of_week=COALESCE(?,day_of_week),start_time=COALESCE(?,start_time),end_time=COALESCE(?,end_time),location=COALESCE(?,location),max_students=COALESCE(?,max_students),is_active=COALESCE(?,is_active),notes=COALESCE(?,notes),fee=COALESCE(?,fee) WHERE id=? AND tutor_id=?',
     [subject||null,grade||null,day_of_week||null,start_time||null,end_time||null,location||null,max_students??null,is_active??null,notes||null,fee??null,req.params.id,req.tutor.id]);
+  retrievalService.clearTutorCache(req.tutor.id);
   res.json({ class: await dbGet('SELECT * FROM classes WHERE id = ?', [req.params.id]) });
 });
 
 router.delete('/:id', async (req, res) => {
   const result = await dbRun('DELETE FROM classes WHERE id = ? AND tutor_id = ?', [req.params.id, req.tutor.id]);
   if (result.changes === 0) return res.status(404).json({ error: 'Class not found' });
+  retrievalService.clearTutorCache(req.tutor.id);
   res.json({ success: true });
 });
 

@@ -595,21 +595,30 @@ Show this help message.`;
       
       // Auto-assign Class and Fee based on Grade and AI Class Selection
       if (sid && normalizedGrade && normalizedGrade !== 'N/A') {
-        let matchedClass = null;
-        if (data.class_id) {
-           matchedClass = await dbGet('SELECT id, fee, grade FROM classes WHERE id = ? AND is_active = 1', [data.class_id]);
+        let totalFee = 0;
+        let assignedClasses = [];
+
+        if (data.class_ids && Array.isArray(data.class_ids) && data.class_ids.length > 0) {
+           for (const cid of data.class_ids) {
+              const matchedClass = await dbGet('SELECT id, fee, grade FROM classes WHERE id = ? AND is_active = 1', [cid]);
+              if (matchedClass) assignedClasses.push(matchedClass);
+           }
         }
-        if (!matchedClass) {
-           matchedClass = await dbGet('SELECT id, fee, grade FROM classes WHERE tutor_id = ? AND grade = ? AND is_active = 1 LIMIT 1', [tutorId, normalizedGrade]);
+        
+        // Fallback if AI didn't provide array, or it was empty
+        if (assignedClasses.length === 0) {
+           const matchedClass = await dbGet('SELECT id, fee, grade FROM classes WHERE tutor_id = ? AND grade = ? AND is_active = 1 LIMIT 1', [tutorId, normalizedGrade]);
+           if (matchedClass) assignedClasses.push(matchedClass);
         }
 
-        if (matchedClass) {
-          // 1. Update student fee
-          await dbRun('UPDATE students SET monthly_fee = ? WHERE id = ?', [matchedClass.fee || settings?.basic_fee || 0, sid]);
-          // VALIDATION: Ensure class belongs to correct grade (if fallback was used)
-          if (matchedClass.grade == normalizedGrade) {
-            await dbRun('INSERT INTO student_classes (student_id, class_id) VALUES (?, ?) ON CONFLICT DO NOTHING', [sid, matchedClass.id]);
+        if (assignedClasses.length > 0) {
+          for (const c of assignedClasses) {
+             totalFee += (c.fee || settings?.basic_fee || 0);
+             if (c.grade == normalizedGrade) {
+               await dbRun('INSERT INTO student_classes (student_id, class_id) VALUES (?, ?) ON CONFLICT DO NOTHING', [sid, c.id]);
+             }
           }
+          await dbRun('UPDATE students SET monthly_fee = ? WHERE id = ?', [totalFee, sid]);
         }
       }
 

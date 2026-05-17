@@ -11,6 +11,14 @@ class RetrievalService {
     this._cacheTTL = 300000; // 5 minutes
   }
 
+  clearTutorCache(tutorId) {
+    if (tutorId) {
+      this._tutorCache.delete(tutorId);
+    } else {
+      this._tutorCache.clear();
+    }
+  }
+
   /**
    * Universal Vector Search with Category Filtering
    */
