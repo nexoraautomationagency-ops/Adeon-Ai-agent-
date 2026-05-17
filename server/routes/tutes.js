@@ -35,7 +35,11 @@ router.get('/', async (req, res) => {
     }
 
     const query = `
-      SELECT td.*, s.name as student_name, s.phone as student_phone, s.grade as student_grade, s.address as student_address 
+      SELECT td.*, s.name as student_name, s.phone as student_phone, s.grade as student_grade, s.address as student_address,
+      (SELECT string_agg(c.subject || ' (' || c.grade || ')', ', ') 
+       FROM student_classes sc 
+       JOIN classes c ON sc.class_id = c.id 
+       WHERE sc.student_id = s.id) as student_classes_list
       FROM tute_deliveries td
       JOIN students s ON s.id = td.student_id
       ${where}

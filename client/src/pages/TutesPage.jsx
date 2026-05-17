@@ -133,6 +133,7 @@ export default function TutesPage() {
               <tr>
                 <th className="pl-6">Student</th>
                 <th>Course Info</th>
+                <th>Classes</th>
                 <th>Shipping Address</th>
                 <th>Status</th>
                 <th>Tracking & Evidence</th>
@@ -141,7 +142,7 @@ export default function TutesPage() {
             </thead>
             <tbody>
               {data.length === 0 ? (
-                <tr><td colSpan="6"><div className="empty-state py-20"><h3>No tute records found</h3><p>Records appear here once student payments are approved.</p></div></td></tr>
+                <tr><td colSpan="7"><div className="empty-state py-20"><h3>No tute records found</h3><p>Records appear here once student payments are approved.</p></div></td></tr>
               ) : (
                 data.map((d) => (
                   <tr key={d.id} className="hover:bg-white/5 transition-colors">
@@ -155,6 +156,14 @@ export default function TutesPage() {
                       <div className="flex flex-col gap-1" style={{ alignItems: 'flex-start' }}>
                         <span className="badge badge-neutral" style={{fontSize:10}}>Grade {d.student_grade}</span>
                         <span className="text-accent font-bold text-sm">{d.month} Tute</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex gap-1 flex-wrap" style={{maxWidth: '180px'}}>
+                        {(d.student_classes_list || '').split(',').filter(Boolean).map((c, i) => (
+                          <span key={i} className="badge badge-info" style={{fontSize: '10px', padding: '2px 6px'}}>{c.trim()}</span>
+                        ))}
+                        {(!d.student_classes_list) && <span className="text-muted">—</span>}
                       </div>
                     </td>
                     <td>
