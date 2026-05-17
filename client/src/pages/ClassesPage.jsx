@@ -37,8 +37,8 @@ export default function ClassesPage() {
     {loading ? <div className="loading-spinner"/> : classes.length === 0 ? <div className="empty-state"><div className="empty-icon">📚</div><h3>No classes yet</h3><p>Create your first class schedule</p><button className="btn btn-primary" onClick={openCreate}><Plus size={18}/>Add Class</button></div> : (
       <div className="classes-grid">
         {classes.map(c => (
-          <div className="card" key={c.id} style={{position:'relative',overflow:'hidden'}}>
-            <div style={{position:'absolute',top:0,left:0,right:0,height:3,background:dayColors[c.day_of_week]||'#6366f1'}}/>
+          <div className="card class-card-wrapper" key={c.id} style={{position:'relative',overflow:'hidden'}}>
+            <div className="class-top-bar" style={{position:'absolute',top:0,left:0,right:0,height:3,background:dayColors[c.day_of_week]||'#6366f1'}}/>
             <div className="flex items-center justify-between mb-3">
               <h3 style={{fontSize:18,fontWeight:700}}>{c.subject}</h3>
               <div className="flex gap-2">

@@ -1042,4 +1042,11 @@ body {
     flex-direction: column;
     gap: 16px;
   }
+  .class-card-wrapper {
+    overflow: visible !important;
+  }
+  .class-card-wrapper .class-top-bar {
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+  }
 }
