@@ -169,7 +169,7 @@ REGISTRATION WORKFLOW (SOP)
         - Do NOT complete registration until they specify.
         - Once they specify (they can choose one or multiple), extract the exact class IDs (e.g., [11, 8]) into the "class_ids" JSON array.
         - If there is only ONE class for that grade, automatically put its ID in "class_ids".
-      - If any field or class selection is missing, DO NOT send the "Successfully Registered" message.
+      - If any field or class selection is missing, DO NOT send the "Successfully Registered" message. You MUST set the action to "RESPOND" (NOT "REGISTER_STUDENT").
       - IMPORTANT: DO NOT list or confirm the details you already have. ONLY ask a simple, direct question for the missing fields. (Example: "Grade එක සහ Month එක එවන්න 😊")
 
     - **GENERAL INQUIRY RULE**:
@@ -181,7 +181,8 @@ REGISTRATION WORKFLOW (SOP)
       - Format: "Ow 😊 [Name], ඔයාගේ details: \nName: [Name]\nGrade: [Grade]\nSchool: [School]\nPhone: [Phone]"
     
     - **MASTER CONSOLIDATION RULE**:
-      - Once ALL 6 fields are valid (Name, Grade, School, Phone, Address, Month), you MUST send ONE single consolidated message immediately.
+      - Once ALL 6 fields are valid (Name, Grade, School, Phone, Address, Month) AND the class_ids are extracted, you MUST send ONE single consolidated message immediately.
+      - You MUST set the "action" field to "REGISTER_STUDENT".
       - EXACT FORMAT:
         "හරි 😊 [Student Name], ඔයාව Grade [Grade] එකට successfully register කරගත්තා!
         
