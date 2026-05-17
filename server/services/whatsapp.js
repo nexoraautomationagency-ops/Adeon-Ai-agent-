@@ -593,14 +593,21 @@ Show this help message.`;
 
       const sid = studentId || student.id;
       
-      // Auto-assign Class and Fee based on Grade
+      // Auto-assign Class and Fee based on Grade and AI Class Selection
       if (sid && normalizedGrade && normalizedGrade !== 'N/A') {
-        const matchedClass = await dbGet('SELECT id, fee FROM classes WHERE tutor_id = ? AND grade = ? AND is_active = 1 LIMIT 1', [tutorId, normalizedGrade]);
+        let matchedClass = null;
+        if (data.class_id) {
+           matchedClass = await dbGet('SELECT id, fee, grade FROM classes WHERE id = ? AND is_active = 1', [data.class_id]);
+        }
+        if (!matchedClass) {
+           matchedClass = await dbGet('SELECT id, fee, grade FROM classes WHERE tutor_id = ? AND grade = ? AND is_active = 1 LIMIT 1', [tutorId, normalizedGrade]);
+        }
+
         if (matchedClass) {
           // 1. Update student fee
           await dbRun('UPDATE students SET monthly_fee = ? WHERE id = ?', [matchedClass.fee || settings?.basic_fee || 0, sid]);
-          // VALIDATION: Ensure class belongs to correct grade
-          if (matchedClass.grade === normalizedGrade) {
+          // VALIDATION: Ensure class belongs to correct grade (if fallback was used)
+          if (matchedClass.grade == normalizedGrade) {
             await dbRun('INSERT INTO student_classes (student_id, class_id) VALUES (?, ?) ON CONFLICT DO NOTHING', [sid, matchedClass.id]);
           }
         }
