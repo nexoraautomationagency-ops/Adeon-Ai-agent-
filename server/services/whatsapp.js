@@ -624,19 +624,24 @@ Show this help message.`;
       }
 
       if (sid) {
-        // Dynamic Fee Calculation
-        const student = await dbGet('SELECT grade FROM students WHERE id = ?', [sid]);
-        const gradeNum = parseInt(student?.grade);
-        let dynamicFee = settings?.basic_fee || 1500;
+        // Use the mathematically calculated monthly fee from the student record
+        const student = await dbGet('SELECT grade, monthly_fee FROM students WHERE id = ?', [sid]);
+        let finalPaymentAmount = parseFloat(student?.monthly_fee) || 0;
         
-        if (gradeNum >= 6 && gradeNum <= 9) dynamicFee = 1200;
-        else if (gradeNum >= 10 && gradeNum <= 11) dynamicFee = 1500;
+        // Fallback to dynamic fee only if the monthly fee is 0
+        if (finalPaymentAmount === 0) {
+            const gradeNum = parseInt(student?.grade);
+            finalPaymentAmount = parseFloat(settings?.basic_fee) || 1500;
+            if (gradeNum >= 6 && gradeNum <= 9) finalPaymentAmount = 1200;
+            else if (gradeNum >= 10 && gradeNum <= 11) finalPaymentAmount = 1500;
+        }
 
         const existingPayment = await dbGet('SELECT id, amount FROM payments WHERE student_id = ? AND month = ? AND year = ?', [sid, month, year]);
         if (!existingPayment) {
-          await dbRun('INSERT INTO payments (tutor_id, student_id, amount, month, year, status) VALUES (?,?,?,?,?,?)', [tutorId, sid, dynamicFee, month, year, 'unpaid']);
-        } else if (existingPayment.amount === 0 || existingPayment.amount === '0') {
-          await dbRun('UPDATE payments SET amount = ? WHERE id = ?', [dynamicFee, existingPayment.id]);
+          await dbRun('INSERT INTO payments (tutor_id, student_id, amount, month, year, status) VALUES (?,?,?,?,?,?)', [tutorId, sid, finalPaymentAmount, month, year, 'unpaid']);
+        } else if (parseFloat(existingPayment.amount) === 0 || parseFloat(existingPayment.amount) !== finalPaymentAmount) {
+          // Sync existing payment amount to the new correct total fee
+          await dbRun('UPDATE payments SET amount = ? WHERE id = ?', [finalPaymentAmount, existingPayment.id]);
         }
         this.emit('db_update', { tutor_id: tutorId, table: 'students', action: studentId ? 'update_enrollment' : 'new_enrollment', name });
       }

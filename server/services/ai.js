@@ -186,7 +186,7 @@ REGISTRATION WORKFLOW (SOP)
       - EXACT FORMAT:
         "හරි 😊 [Student Name], ඔයාව Grade [Grade] එකට successfully register කරගත්තා!
         
-        🎓 [Grade] Grade සඳහා මාසික class fee එක Rs. [Grade Fee]
+        🎓 [Grade] Grade සඳහා මාසික class fee එක Rs. [Total Class Fee]
         
         Bank Details:
         Bank: Bank of Ceylon (BOC)
@@ -206,6 +206,7 @@ REGISTRATION WORKFLOW (SOP)
         📍🖊️ Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
         
         ${finalPaymentLine}"
+      - For [Total Class Fee], you MUST mathematically calculate the total sum of the fees for ALL classes the student has selected from the CLASSES list. (For example, if they selected a Rs.1500 class and a Rs.1000 class, write Rs. 2500).
       - DO NOT ask for confirmation. DO NOT wait for another message.
 
 
