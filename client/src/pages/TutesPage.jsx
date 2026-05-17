@@ -152,7 +152,7 @@ export default function TutesPage() {
                       </div>
                     </td>
                     <td>
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1" style={{ alignItems: 'flex-start' }}>
                         <span className="badge badge-neutral" style={{fontSize:10}}>Grade {d.student_grade}</span>
                         <span className="text-accent font-bold text-sm">{d.month} Tute</span>
                       </div>
@@ -164,12 +164,11 @@ export default function TutesPage() {
                       </div>
                     </td>
                     <td>
-                      <span className={`badge py-1 px-3 ${
+                      <span className={`badge py-1 pl-2.5 pr-3 ${
                         d.status === 'delivered' ? 'badge-success glow-success' : 
                         d.status === 'shipped' ? 'badge-warning' : 'badge-neutral'
                       }`}>
-                        <div className={`status-dot ${d.status==='delivered'?'bg-success':d.status==='shipped'?'bg-warning':'bg-muted'}`}/>
-                        {d.status.toUpperCase()}
+                        <div className={`status-dot ${d.status==='delivered'?'bg-success':d.status==='shipped'?'bg-warning':'bg-muted'}`}/>{d.status.toUpperCase()}
                       </span>
                     </td>
                     <td>

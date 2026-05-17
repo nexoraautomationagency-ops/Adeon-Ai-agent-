@@ -1,49 +1,54 @@
-const { dbRun, supabase } = require('../server/db/connection');
-const OpenAI = require('openai');
 require('dotenv').config();
+const { supabase } = require('./server/db/connection');
+const { getEmbedding } = require('./server/services/ai-utils');
 
-const client = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: 'https://openrouter.ai/api/v1'
-});
+/**
+ * 🎓 TEACH YOUR AI - MANUAL UPDATE TEMPLATE
+ * Edit the "category" and "text" below to update your AI's brain.
+ */
 
-async function getEmbedding(text) {
-  const response = await client.embeddings.create({
-    model: 'text-embedding-3-small',
-    input: text,
-  });
-  return response.data[0].embedding;
-}
+// --- 🟢 LAYER EXAMPLES 🟢 ---
+// Layer 1: Database (Student/Payment Data)
+// Layer 2: FAQ (Fees, Classes, Schedules)
+// Layer 3: Style (Singlish, Tone, Emoji usage)
+// Layer 4: SOP (Registration Flow, Bank Details)
 
-async function addKnowledge(content, category = 'FAQ') {
+const infoToAdd = [
+  {
+    category: "SOP", // <--- CHANGE THIS (FAQ, STYLE, or SOP)
+    text: `GREETING: ආයුබෝවන් 😊 Excel Science Academy වෙත ඔබව සාදරයෙන් පිළිගනිමු.`
+  }
+];
+
+// --- ⚙️ SYNC LOGIC (Do not change) ---
+async function addKnowledge(text, category) {
+  if (!text) return;
+  console.log(`🧠 Syncing [${category.toUpperCase()}]...`);
   try {
-    console.log(`🧠 Generating embedding for: "${content.substring(0, 50)}..."`);
-    const embedding = await getEmbedding(content);
-    
-    // Insert into Supabase
-    const { data, error } = await supabase
-      .from('knowledge_base')
-      .insert({
-        content,
-        category: category.toUpperCase(),
-        embedding
-      });
+    const embedding = await getEmbedding(text);
+    if (!embedding) return;
 
-    if (error) throw error;
-    console.log(`✅ Added to Knowledge Base (${category})`);
+    const { pool } = require('./server/db/connection');
+    // Wipes only THIS category so you can replace it with your new text
+    await pool.query('DELETE FROM knowledge_base WHERE LOWER(category) = $1', [category.toLowerCase()]);
+
+    await supabase.from('knowledge_base').insert([{
+      content: text,
+      category: category.toLowerCase(),
+      embedding: embedding,
+      metadata: { added_at: new Date().toISOString() }
+    }]);
+    console.log(`✅ Success! [${category}] is now updated.`);
   } catch (err) {
-    console.error('❌ Error adding knowledge:', err.message);
+    console.error('❌ Error:', err.message);
   }
 }
 
-// Example usage if run directly
-if (require.main === module) {
-  const args = process.argv.slice(2);
-  if (args.length < 1) {
-    console.log('Usage: node add-knowledge.js "Content" [CATEGORY]');
-  } else {
-    addKnowledge(args[0], args[1] || 'FAQ').then(() => process.exit(0));
+async function run() {
+  for (const item of infoToAdd) {
+    await addKnowledge(item.text, item.category);
   }
+  process.exit(0);
 }
 
-module.exports = { addKnowledge };
+run();

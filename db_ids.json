@@ -1,0 +1,983 @@
+{
+  "kb": [
+    {
+      "id": "117",
+      "category": "STYLE",
+      "metadata": {
+        "topic": "Master Class Details",
+        "source": "Rescue Recovery"
+      }
+    },
+    {
+      "id": "57",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Printed Tute Request",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:15:28.980Z"
+      }
+    },
+    {
+      "id": "58",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Student Profile Update",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:20:06.111Z"
+      }
+    },
+    {
+      "id": "69",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Subject Information",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:42:04.032Z"
+      }
+    },
+    {
+      "id": "70",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Tutor Details",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:42:39.995Z"
+      }
+    },
+    {
+      "id": "71",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Requesting Recordings",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:44:31.748Z"
+      }
+    },
+    {
+      "id": "83",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Refund Request",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T14:19:28.698Z"
+      }
+    },
+    {
+      "id": "93",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Contact & Admission",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T14:48:24.669Z"
+      }
+    },
+    {
+      "id": "59",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "WhatsApp Group Locked",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:20:56.357Z"
+      }
+    },
+    {
+      "id": "60",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Discount Request",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:21:36.274Z"
+      }
+    },
+    {
+      "id": "61",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Missing Materials",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:23:57.543Z"
+      }
+    },
+    {
+      "id": "62",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Zoom Technical Issue",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:25:22.357Z"
+      }
+    },
+    {
+      "id": "63",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Class Schedule Inquiry",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:26:16.152Z"
+      }
+    },
+    {
+      "id": "65",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Student Complaint",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:37:43.270Z"
+      }
+    },
+    {
+      "id": "66",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Missed Class Recording",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:39:55.224Z"
+      }
+    },
+    {
+      "id": "67",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Payment Receipt Sent",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:40:29.832Z"
+      }
+    },
+    {
+      "id": "68",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Class Types & Location",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:41:20.049Z"
+      }
+    },
+    {
+      "id": "72",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Student Support",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:52:01.695Z"
+      }
+    },
+    {
+      "id": "73",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Holiday Schedule",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T13:54:42.143Z"
+      }
+    },
+    {
+      "id": "75",
+      "category": "FAQ",
+      "metadata": {
+        "topic": "Tute Delivery Tracking",
+        "source": "Manual Dashboard",
+        "added_at": "2026-05-13T14:02:15.340Z"
+      }
+    }
+  ],
+  "ke": [
+    {
+      "id": 37,
+      "intent": "PAYMENT",
+      "student_message": "Bank info please",
+      "ideal_reply": "මෙන්න bank details 😊 [Bank Details]"
+    },
+    {
+      "id": 67,
+      "intent": "SCHEDULE",
+      "student_message": "Class duration?",
+      "ideal_reply": "2-3 hours 😊"
+    },
+    {
+      "id": 1,
+      "intent": "ADMISSION",
+      "student_message": "Hi, join wenna puluwanda?",
+      "ideal_reply": "ආයුබෝවන් 😊 Join වෙන්න පුළුවන්. ඔයා දැනට ඉගෙන ගන්නේ මොන Grade එකේද?"
+    },
+    {
+      "id": 2,
+      "intent": "ADMISSION",
+      "student_message": "Grade 10",
+      "ideal_reply": "හොඳයි 😊 Full Name, School, Phone Number සහ join වෙන්න ඕනේ month එක එවන්න පුළුවන්ද?"
+    },
+    {
+      "id": 3,
+      "intent": "ADMISSION",
+      "student_message": "My school change",
+      "ideal_reply": "හරි 😊 New school එක එවන්න, මම system එක update කරන්නම්."
+    },
+    {
+      "id": 4,
+      "intent": "ADMISSION",
+      "student_message": "Phone number change",
+      "ideal_reply": "හරි 😊 New number එක send කරන්න, මම update කරන්නම්."
+    },
+    {
+      "id": 5,
+      "intent": "ADMISSION",
+      "student_message": "Join process?",
+      "ideal_reply": "මුලින්ම ඔයාගේ Grade එක කියන්න 😊 ඊට පස්සේ details අරගෙන bank info දෙන්නම්."
+    },
+    {
+      "id": 6,
+      "intent": "ADMISSION",
+      "student_message": "Change grade",
+      "ideal_reply": "ඔයා join වෙන්න ඕනේ new Grade එක කියන්න 😊 මම update කරන්නම්."
+    },
+    {
+      "id": 7,
+      "intent": "ADMISSION",
+      "student_message": "Can I join late?",
+      "ideal_reply": "ඔව් පුළුවන් 😊 missed topics recordings වලින් cover කරගන්න පුළුවන්."
+    },
+    {
+      "id": 58,
+      "intent": "SCHEDULE",
+      "student_message": "Is there a class today?",
+      "ideal_reply": "ඔව් 😊 changes තිබ්බොත් විතරයි announce කරන්නේ."
+    },
+    {
+      "id": 108,
+      "intent": "GREETING",
+      "student_message": "Sinhala puluwanda?",
+      "ideal_reply": "ඔව් 😊 Sinhala වලින් අහන්න පුළුවන්."
+    },
+    {
+      "id": 109,
+      "intent": "GREETING",
+      "student_message": "English ok?",
+      "ideal_reply": "Yes 😊 I can help in English too."
+    },
+    {
+      "id": 110,
+      "intent": "GREETING",
+      "student_message": "Wait a minute",
+      "ideal_reply": "හරි 😊 take your time."
+    },
+    {
+      "id": 111,
+      "intent": "GREETING",
+      "student_message": "Is this Admin?",
+      "ideal_reply": "ඔව් 😊 official Admin මම."
+    },
+    {
+      "id": 112,
+      "intent": "GREETING",
+      "student_message": "Thanks for help",
+      "ideal_reply": "ස්තුතියි 😊 Good luck!"
+    },
+    {
+      "id": 113,
+      "intent": "GREETING",
+      "student_message": "I'm clear now",
+      "ideal_reply": "හොඳයි 😊 තවත් ප්රශ්න තියෙනවා නම් අහන්න."
+    },
+    {
+      "id": 114,
+      "intent": "GREETING",
+      "student_message": "Good night",
+      "ideal_reply": "Good night 😊"
+    },
+    {
+      "id": 115,
+      "intent": "GREETING",
+      "student_message": "Hame",
+      "ideal_reply": "හරි 😊"
+    },
+    {
+      "id": 116,
+      "intent": "GREETING",
+      "student_message": "Got it",
+      "ideal_reply": "Ok 😊"
+    },
+    {
+      "id": 117,
+      "intent": "GREETING",
+      "student_message": "Appreciated",
+      "ideal_reply": "ස්තුතියි 😊"
+    },
+    {
+      "id": 118,
+      "intent": "GREETING",
+      "student_message": "Can you talk?",
+      "ideal_reply": "ඔව් 😊 message කරන්න."
+    },
+    {
+      "id": 119,
+      "intent": "GREETING",
+      "student_message": "Nice talking to you",
+      "ideal_reply": "ස්තුතියි 😊"
+    },
+    {
+      "id": 120,
+      "intent": "GREETING",
+      "student_message": "Welcome",
+      "ideal_reply": "😊"
+    },
+    {
+      "id": 121,
+      "intent": "GREETING",
+      "student_message": "Understood well",
+      "ideal_reply": "හොඳයි 😊"
+    },
+    {
+      "id": 9,
+      "intent": "ADMISSION",
+      "student_message": "Can I switch online?",
+      "ideal_reply": "ඔව් පුළුවන් 😊 Grade එකයි school එකයි නැවත එවන්න, මම update කරන්නම්."
+    },
+    {
+      "id": 10,
+      "intent": "ADMISSION",
+      "student_message": "Physical to online?",
+      "ideal_reply": "පුළුවන් 😊 details ටික එවන්න, මම system එක update කරන්නම්."
+    },
+    {
+      "id": 11,
+      "intent": "ADMISSION",
+      "student_message": "Online to physical?",
+      "ideal_reply": "Nugegoda physical class එකේ seats තියෙනවද කියලා check කරලා කියන්නම් 😊"
+    },
+    {
+      "id": 12,
+      "intent": "ADMISSION",
+      "student_message": "Register wenna ona",
+      "ideal_reply": "හරි 😊 මුලින්ම ඔයාගේ Grade එක කියන්න."
+    },
+    {
+      "id": 13,
+      "intent": "ADMISSION",
+      "student_message": "I am in Grade 11",
+      "ideal_reply": "හොඳයි 😊 Full Name, School, සහ Phone Number එක එවන්න."
+    },
+    {
+      "id": 14,
+      "intent": "ADMISSION",
+      "student_message": "Amila Perera, Ananda College, 0771234567",
+      "ideal_reply": "ස්තුතියි Amila 😊 ඔයා join වෙන්නේ මොන month එකටද?"
+    },
+    {
+      "id": 15,
+      "intent": "ADMISSION",
+      "student_message": "May month join wenne",
+      "ideal_reply": "හරි 😊 bank details එවන්නම්, payment කරලා receipt එක එවන්න."
+    },
+    {
+      "id": 16,
+      "intent": "ADMISSION",
+      "student_message": "Ayet details denna onada?",
+      "ideal_reply": "ඔයාගේ details change වුණා නම් විතරක් එවන්න 😊"
+    },
+    {
+      "id": 17,
+      "intent": "ADMISSION",
+      "student_message": "How to join paper class?",
+      "ideal_reply": "මුලින්ම Grade එක කියන්න 😊 ඊට පස්සේ details දෙන්නම්."
+    },
+    {
+      "id": 18,
+      "intent": "ADMISSION",
+      "student_message": "Grade 11 Theory & Paper dekama ona",
+      "ideal_reply": "හොඳයි 😊 details ටික එවන්න, register කරන්නම්."
+    },
+    {
+      "id": 19,
+      "intent": "ADMISSION",
+      "student_message": "Admission fee thiyenawada?",
+      "ideal_reply": "නැහැ 😊 monthly class fee විතරයි තියෙන්නේ."
+    },
+    {
+      "id": 20,
+      "intent": "ADMISSION",
+      "student_message": "Mama 2026 O/L",
+      "ideal_reply": "හරි 😊 ඒ කියන්නේ Grade 10 නේද? details එවන්න."
+    },
+    {
+      "id": 21,
+      "intent": "ADMISSION",
+      "student_message": "Details sent",
+      "ideal_reply": "ස්තුතියි 😊 system එකට add කරනවා."
+    },
+    {
+      "id": 22,
+      "intent": "ADMISSION",
+      "student_message": "Can I join today?",
+      "ideal_reply": "ඔව් පුළුවන් 😊 details එවන්න, payment කරලා link එක දෙන්නම්."
+    },
+    {
+      "id": 23,
+      "intent": "ADMISSION",
+      "student_message": "I'm a new student",
+      "ideal_reply": "Welcome 😊 ඔයා දැනට ඉගෙන ගන්නේ මොන Grade එකේද?"
+    },
+    {
+      "id": 24,
+      "intent": "ADMISSION",
+      "student_message": "Register karanna",
+      "ideal_reply": "හරි 😊 Grade එක සහ school එක මුලින්ම කියන්න."
+    },
+    {
+      "id": 25,
+      "intent": "ADMISSION",
+      "student_message": "Update my phone",
+      "ideal_reply": "හරි 😊 new phone number එක එවන්න, update කරන්නම්."
+    },
+    {
+      "id": 26,
+      "intent": "PAYMENT",
+      "student_message": "Payment how?",
+      "ideal_reply": "Bank details වලට payment කරලා receipt photo එක එවන්න 😊"
+    },
+    {
+      "id": 27,
+      "intent": "PAYMENT",
+      "student_message": "Receipt sent",
+      "ideal_reply": "ස්තුතියි 😊 24 hours ඇතුළත verify කරලා group එකට add කරනවා."
+    },
+    {
+      "id": 28,
+      "intent": "PAYMENT",
+      "student_message": "Discount ekak denna puluwanda?",
+      "ideal_reply": "Standard fee එක තමයි තියෙන්නේ 😊 Sir ට message එකක් දාලා අහන්න."
+    },
+    {
+      "id": 29,
+      "intent": "PAYMENT",
+      "student_message": "Refund one",
+      "ideal_reply": "Fees non-refundable 😊 අවශ්ය නම් next month එකට transfer කරන්න පුළුවන්."
+    },
+    {
+      "id": 30,
+      "intent": "PAYMENT",
+      "student_message": "Printed tute one",
+      "ideal_reply": "Online students ලට PDF දෙනවා 😊 printed tutes ගැන Sir ගෙන් අහන්න."
+    },
+    {
+      "id": 31,
+      "intent": "PAYMENT",
+      "student_message": "Payment receipt lost",
+      "ideal_reply": "Bank app screenshot එකක් එවන්න 😊 අපි verify කරන්නම්."
+    },
+    {
+      "id": 32,
+      "intent": "PAYMENT",
+      "student_message": "Late payment ok?",
+      "ideal_reply": "ප්රශ්නයක් නැහැ 😊 class එකට කලින් pay කරන්න පුළුවන්."
+    },
+    {
+      "id": 33,
+      "intent": "PAYMENT",
+      "student_message": "Wrong payment sent",
+      "ideal_reply": "අපි check කරන්නම් 😊 Admin කෙනෙක් ඔයාට contact කරයි."
+    },
+    {
+      "id": 34,
+      "intent": "PAYMENT",
+      "student_message": "Can I pay later?",
+      "ideal_reply": "සාමාන්යයෙන් class එකට කලින් pay කරන්න ඕනේ 😊"
+    },
+    {
+      "id": 35,
+      "intent": "PAYMENT",
+      "student_message": "No access after payment",
+      "ideal_reply": "හරි 😊 receipt එක නැවත check කරන්නම්."
+    },
+    {
+      "id": 36,
+      "intent": "PAYMENT",
+      "student_message": "Payment confirmed?",
+      "ideal_reply": "Admin verify කරනවා 😊 confirm වුණාම message එක එවන්නම්."
+    },
+    {
+      "id": 38,
+      "intent": "PAYMENT",
+      "student_message": "Fee for Grade 10?",
+      "ideal_reply": "Grade 10 monthly fee Rs. 1500/= 😊"
+    },
+    {
+      "id": 39,
+      "intent": "PAYMENT",
+      "student_message": "Two months pay karන්නද?",
+      "ideal_reply": "පුළුවන් 😊 receipt එකේ months mention කරන්න."
+    },
+    {
+      "id": 40,
+      "intent": "PAYMENT",
+      "student_message": "Card payment thiyenawada?",
+      "ideal_reply": "දැනට bank transfer/deposit විතරයි 😊"
+    },
+    {
+      "id": 41,
+      "intent": "PAYMENT",
+      "student_message": "Payment verify karanna kela wenawada?",
+      "ideal_reply": "24 hours ඇතුළත verify කරනවා 😊"
+    },
+    {
+      "id": 42,
+      "intent": "PAYMENT",
+      "student_message": "Mistake in receipt",
+      "ideal_reply": "ප්රශ්නයක් නැහැ 😊 correct details එවන්න."
+    },
+    {
+      "id": 43,
+      "intent": "PAYMENT",
+      "student_message": "Scholarship thiyenawada?",
+      "ideal_reply": "ඒ ගැන Sir ට direct message එකක් දාන්න 😊"
+    },
+    {
+      "id": 44,
+      "intent": "PAYMENT",
+      "student_message": "Monthly fee change?",
+      "ideal_reply": "නැහැ 😊 same fee එක තියෙන්නේ."
+    },
+    {
+      "id": 45,
+      "intent": "PAYMENT",
+      "student_message": "How to send receipt?",
+      "ideal_reply": "WhatsApp එකට photo එකක් විදිහට එවන්න 😊"
+    },
+    {
+      "id": 46,
+      "intent": "PAYMENT",
+      "student_message": "Is it paid?",
+      "ideal_reply": "ඔයාගේ name එක එවන්න 😊 check කරන්නම්."
+    },
+    {
+      "id": 47,
+      "intent": "PAYMENT",
+      "student_message": "Pay kela, link na",
+      "ideal_reply": "receipt එක එවන්න 😊 link එක දෙන්නම්."
+    },
+    {
+      "id": 48,
+      "intent": "PAYMENT",
+      "student_message": "Online vs Physical fee?",
+      "ideal_reply": "දෙකටම same fee එක 😊"
+    },
+    {
+      "id": 49,
+      "intent": "PAYMENT",
+      "student_message": "Can I pay by cash?",
+      "ideal_reply": "Physical class එකේදී cash pay කරන්න පුළුවන් 😊"
+    },
+    {
+      "id": 50,
+      "intent": "PAYMENT",
+      "student_message": "Payment deadline?",
+      "ideal_reply": "සෑම month එකේම first week එක ඇතුළත 😊"
+    },
+    {
+      "id": 51,
+      "intent": "SCHEDULE",
+      "student_message": "Next class kada?",
+      "ideal_reply": "Pinned message එක check කරන්න 😊 updates තිබ්බොත් Sir announce කරයි."
+    },
+    {
+      "id": 52,
+      "intent": "SCHEDULE",
+      "student_message": "Class schedule?",
+      "ideal_reply": "Standard schedule එක තියෙන්නේ 😊 pinned message එක බලන්න."
+    },
+    {
+      "id": 53,
+      "intent": "SCHEDULE",
+      "student_message": "Teacher who?",
+      "ideal_reply": "Science classes කරන්නේ Mr. Sampath Kumara 😊"
+    },
+    {
+      "id": 54,
+      "intent": "SCHEDULE",
+      "student_message": "Subjects mokakda?",
+      "ideal_reply": "O/L Science (Biology, Physics, Chemistry) 😊"
+    },
+    {
+      "id": 55,
+      "intent": "SCHEDULE",
+      "student_message": "Physical location?",
+      "ideal_reply": "Nugegoda physical class 😊"
+    },
+    {
+      "id": 56,
+      "intent": "SCHEDULE",
+      "student_message": "Holiday class thiyenawada?",
+      "ideal_reply": "පෝය දවස් වල සාමාන්යයෙන් නිවාඩු 😊"
+    },
+    {
+      "id": 57,
+      "intent": "SCHEDULE",
+      "student_message": "Grade 11 class time?",
+      "ideal_reply": "Sunday 8 AM 😊 pinned message එක check කරන්න."
+    },
+    {
+      "id": 59,
+      "intent": "SCHEDULE",
+      "student_message": "Tutor's background?",
+      "ideal_reply": "Mr. Sampath Kumara experienced Science teacher කෙනෙක් 😊"
+    },
+    {
+      "id": 60,
+      "intent": "SCHEDULE",
+      "student_message": "What do you cover?",
+      "ideal_reply": "Full O/L syllabus + past papers 😊"
+    },
+    {
+      "id": 61,
+      "intent": "SCHEDULE",
+      "student_message": "Extra class thiyeda?",
+      "ideal_reply": "Group එක check කරන්න 😊 announce කරනවා."
+    },
+    {
+      "id": 62,
+      "intent": "SCHEDULE",
+      "student_message": "Syllabus cover wenawada?",
+      "ideal_reply": "අනිවාර්යයෙන් 😊 full syllabus cover කරනවා."
+    },
+    {
+      "id": 63,
+      "intent": "SCHEDULE",
+      "student_message": "When is revision?",
+      "ideal_reply": "Exam එකට කලින් revision පටන් ගන්නවා 😊"
+    },
+    {
+      "id": 64,
+      "intent": "SCHEDULE",
+      "student_message": "Grade 10 physical?",
+      "ideal_reply": "ඔව් 😊 Nugegoda physical class තියෙනවා."
+    },
+    {
+      "id": 65,
+      "intent": "SCHEDULE",
+      "student_message": "Zoom classes only?",
+      "ideal_reply": "නැහැ 😊 physical + online දෙකම තියෙනවා."
+    },
+    {
+      "id": 66,
+      "intent": "SCHEDULE",
+      "student_message": "Medium mokakda?",
+      "ideal_reply": "Sinhala Medium 😊"
+    },
+    {
+      "id": 68,
+      "intent": "SCHEDULE",
+      "student_message": "Recording link kada?",
+      "ideal_reply": "Class එකෙන් පස්සේ group එකට link එවෙනවා 😊"
+    },
+    {
+      "id": 69,
+      "intent": "SCHEDULE",
+      "student_message": "Can I see a demo?",
+      "ideal_reply": "YouTube lectures තියෙනවා 😊"
+    },
+    {
+      "id": 70,
+      "intent": "SCHEDULE",
+      "student_message": "Subject chapters?",
+      "ideal_reply": "All chapters step by step 😊"
+    },
+    {
+      "id": 71,
+      "intent": "SCHEDULE",
+      "student_message": "Next month schedule?",
+      "ideal_reply": "Month end එකේ publish කරනවා 😊"
+    },
+    {
+      "id": 72,
+      "intent": "SCHEDULE",
+      "student_message": "Online vs Physical syllabus?",
+      "ideal_reply": "Same syllabus 😊"
+    },
+    {
+      "id": 73,
+      "intent": "SCHEDULE",
+      "student_message": "Tutor qualification?",
+      "ideal_reply": "10+ years experience teacher 😊"
+    },
+    {
+      "id": 74,
+      "intent": "SCHEDULE",
+      "student_message": "Is it Sinhala Medium?",
+      "ideal_reply": "ඔව් 😊 Sinhala Medium Science."
+    },
+    {
+      "id": 75,
+      "intent": "SCHEDULE",
+      "student_message": "Class start time?",
+      "ideal_reply": "Pinned message එකේ තියෙනවා 😊"
+    },
+    {
+      "id": 76,
+      "intent": "TECHNICAL",
+      "student_message": "Zoom join wenna ba",
+      "ideal_reply": "Exit වෙලා නැවත join වෙන්න 😊 audio settings check කරන්න."
+    },
+    {
+      "id": 77,
+      "intent": "TECHNICAL",
+      "student_message": "Audio wada na",
+      "ideal_reply": "Internet check කරලා rejoin වෙන්න 😊"
+    },
+    {
+      "id": 78,
+      "intent": "TECHNICAL",
+      "student_message": "Tute eka awilla na",
+      "ideal_reply": "PDFs group එකේ media section එකේ තියෙනවා 😊"
+    },
+    {
+      "id": 79,
+      "intent": "TECHNICAL",
+      "student_message": "Group locked why?",
+      "ideal_reply": "Spam avoid කරන්න Admin only කරලා තියෙන්නේ 😊"
+    },
+    {
+      "id": 80,
+      "intent": "TECHNICAL",
+      "student_message": "Missed Zoom link",
+      "ideal_reply": "Pinned messages check කරන්න 😊"
+    },
+    {
+      "id": 81,
+      "intent": "TECHNICAL",
+      "student_message": "Recording not working",
+      "ideal_reply": "නැවත try කරන්න හෝ වෙන browser එකක් use කරන්න 😊"
+    },
+    {
+      "id": 82,
+      "intent": "TECHNICAL",
+      "student_message": "Science doubt help",
+      "ideal_reply": "මේක note කරගන්නවා 😊 Sir explain කරයි."
+    },
+    {
+      "id": 83,
+      "intent": "TECHNICAL",
+      "student_message": "Hard question help",
+      "ideal_reply": "මේක Sir ට forward කරනවා 😊"
+    },
+    {
+      "id": 84,
+      "intent": "TECHNICAL",
+      "student_message": "Recording limited time?",
+      "ideal_reply": "30 days access තියෙනවා 😊"
+    },
+    {
+      "id": 85,
+      "intent": "TECHNICAL",
+      "student_message": "App not working",
+      "ideal_reply": "App update හෝ restart කරන්න 😊"
+    },
+    {
+      "id": 86,
+      "intent": "TECHNICAL",
+      "student_message": "No reply in group",
+      "ideal_reply": "Group එක Admin only 😊 මෙතන message කරන්න."
+    },
+    {
+      "id": 87,
+      "intent": "TECHNICAL",
+      "student_message": "Slow internet Zoom",
+      "ideal_reply": "Audio only use කරන්න 😊"
+    },
+    {
+      "id": 88,
+      "intent": "TECHNICAL",
+      "student_message": "Link update pls",
+      "ideal_reply": "Pinned message එක check කරන්න 😊"
+    },
+    {
+      "id": 89,
+      "intent": "TECHNICAL",
+      "student_message": "Can I ask science doubt?",
+      "ideal_reply": "ඔව් 😊 question එක එවන්න."
+    },
+    {
+      "id": 90,
+      "intent": "TECHNICAL",
+      "student_message": "Explain this topic",
+      "ideal_reply": "Sir ට forward කරනවා 😊"
+    },
+    {
+      "id": 91,
+      "intent": "TECHNICAL",
+      "student_message": "Recording extension ona",
+      "ideal_reply": "30 days limit තියෙනවා 😊"
+    },
+    {
+      "id": 92,
+      "intent": "TECHNICAL",
+      "student_message": "PDF missing",
+      "ideal_reply": "Media/Docs section එක බලන්න 😊"
+    },
+    {
+      "id": 93,
+      "intent": "TECHNICAL",
+      "student_message": "Login issue",
+      "ideal_reply": "Zoom email check කරලා login වෙන්න 😊"
+    },
+    {
+      "id": 94,
+      "intent": "TECHNICAL",
+      "student_message": "Tute delivered?",
+      "ideal_reply": "3-5 days ඇතුළත deliver කරනවා 😊"
+    },
+    {
+      "id": 95,
+      "intent": "TECHNICAL",
+      "student_message": "Support thiyenawada?",
+      "ideal_reply": "ඔව් 😊 technical help තියෙනවා."
+    },
+    {
+      "id": 96,
+      "intent": "TECHNICAL",
+      "student_message": "Mic issue in Zoom",
+      "ideal_reply": "Mic permissions enable කරන්න 😊"
+    },
+    {
+      "id": 97,
+      "intent": "TECHNICAL",
+      "student_message": "Can't download PDF",
+      "ideal_reply": "Storage check කරන්න 😊"
+    },
+    {
+      "id": 98,
+      "intent": "TECHNICAL",
+      "student_message": "Recording buffer wenawa",
+      "ideal_reply": "Internet speed check කරන්න 😊"
+    },
+    {
+      "id": 99,
+      "intent": "TECHNICAL",
+      "student_message": "Urgent technical help",
+      "ideal_reply": "Admin team එක check කරනවා 😊"
+    },
+    {
+      "id": 100,
+      "intent": "TECHNICAL",
+      "student_message": "Subject problem",
+      "ideal_reply": "Sir ට forward කරනවා 😊"
+    },
+    {
+      "id": 101,
+      "intent": "GREETING",
+      "student_message": "Hi",
+      "ideal_reply": "ආයුබෝවන් 😊 Adeon Science Class Admin මම. මොනවද help කරන්න?"
+    },
+    {
+      "id": 102,
+      "intent": "GREETING",
+      "student_message": "Hello",
+      "ideal_reply": "Hello 😊 කොහොමද help කරන්න පුළුවන්?"
+    },
+    {
+      "id": 103,
+      "intent": "GREETING",
+      "student_message": "Thanks",
+      "ideal_reply": "Welcome 😊 ඕනෑම වෙලාවක help එකක් ඕනේ නම් කියන්න."
+    },
+    {
+      "id": 104,
+      "intent": "GREETING",
+      "student_message": "Ok understood",
+      "ideal_reply": "හොඳයි 😊"
+    },
+    {
+      "id": 105,
+      "intent": "GREETING",
+      "student_message": "Bye",
+      "ideal_reply": "Bye 😊 සුබ දවසක්!"
+    },
+    {
+      "id": 106,
+      "intent": "GREETING",
+      "student_message": "Ayubowan",
+      "ideal_reply": "ආයුබෝවන් 😊 කොහොමද help කරන්න?"
+    },
+    {
+      "id": 107,
+      "intent": "GREETING",
+      "student_message": "Good morning",
+      "ideal_reply": "Good morning 😊 මොනවද දැනගන්න ඕනේ?"
+    },
+    {
+      "id": 122,
+      "intent": "GREETING",
+      "student_message": "See you",
+      "ideal_reply": "හරි 😊 පස්සේ හමුවෙමු."
+    },
+    {
+      "id": 123,
+      "intent": "GREETING",
+      "student_message": "Take care",
+      "ideal_reply": "ඔයාටත් එසේම වේවා 😊"
+    },
+    {
+      "id": 124,
+      "intent": "GREETING",
+      "student_message": "Great service",
+      "ideal_reply": "ස්තුතියි 😊"
+    },
+    {
+      "id": 125,
+      "intent": "GREETING",
+      "student_message": "Hi Sir",
+      "ideal_reply": "මම Admin 😊 Sir ට message එකක් forward කරන්නම්."
+    },
+    {
+      "id": 126,
+      "intent": "ADMISSION",
+      "student_message": "Can I register my brother?",
+      "ideal_reply": "ඔයාගේ brother ව register කරන්න වෙනම WhatsApp number එකක් ඕනේ 😊 අපේ system එකේ හැමෝටම separate profiles තියෙන්න ඕනේ නිසා එයාගේ phone no එකෙන් අපිට message එකක් එවන්න කියන්න."
+    },
+    {
+      "id": 127,
+      "intent": "ADMISSION",
+      "student_message": "Mata mage ayyawa add karanna one",
+      "ideal_reply": "ඔයාගේ brother ව register කරන්න වෙනම WhatsApp number එකක් ඕනේ 😊 අපේ system එකේ හැමෝටම separate profiles තියෙන්න ඕනේ නිසා එයාගේ phone no එකෙන් අපිට message එකක් එවන්න කියන්න."
+    },
+    {
+      "id": 128,
+      "intent": "ADMISSION",
+      "student_message": "Nangiwa add karanna puluwanda?",
+      "ideal_reply": "ඔයාගේ sister ව register කරන්න වෙනම WhatsApp number එකක් ඕනේ 😊 අපේ system එකේ හැමෝටම separate profiles තියෙන්න ඕනේ නිසා එයාගේ phone no එකෙන් අපිට message එකක් එවන්න කියන්න."
+    },
+    {
+      "id": 129,
+      "intent": "ADMISSION",
+      "student_message": "Mata mage yaluwekwa register karanna ona",
+      "ideal_reply": "ඔයාගේ friend ව register කරන්න වෙනම WhatsApp number එකක් ඕනේ 😊 අපේ system එකේ හැමෝටම separate profiles තියෙන්න ඕනේ නිසා එයාගේ phone no එකෙන් අපිට message එකක් එවන්න කියන්න."
+    },
+    {
+      "id": 132,
+      "intent": "ADMISSION",
+      "student_message": "Mata mage yaluwekwa register karanna ona",
+      "ideal_reply": "ඔයාගේ friend ව register කරන්න වෙනම WhatsApp number එකක් ඕනේ 😊 අපේ system එකේ හැමෝටම separate profiles තියෙන්න ඕනේ නිසා එයාගේ phone no එකෙන් අපිට message එකක් එවන්න කියන්න."
+    },
+    {
+      "id": 133,
+      "intent": "ADMISSION",
+      "student_message": "Nangiwa add karanna puluwanda?",
+      "ideal_reply": "ඔයාගේ sister ව register කරන්න වෙනම WhatsApp number එකක් ඕනේ 😊 අපේ system එකේ හැමෝටම separate profiles තියෙන්න ඕනේ නිසා එයාගේ phone no එකෙන් අපිට message එකක් එවන්න කියන්න."
+    },
+    {
+      "id": 134,
+      "intent": "GREETING",
+      "student_message": "Hi Sir",
+      "ideal_reply": "මම Admin 😊 Sir ට message එකක් forward කරන්නම්."
+    },
+    {
+      "id": 136,
+      "intent": "PAYMENT",
+      "student_message": "Pay kela, link na",
+      "ideal_reply": "receipt එක එවන්න 😊 link එක දෙන්නම්."
+    },
+    {
+      "id": 137,
+      "intent": "OTHER",
+      "student_message": "Explain this topic",
+      "ideal_reply": "මේක subject එකට අදාළ ප්‍රශ්නයක් නිසා මම Sir ට forward කරන්නම් 😊 Sir ඒකට reply එකක් දෙයි."
+    }
+  ]
+}

@@ -151,9 +151,8 @@ export default function StudentsPage() {
                   <td className="text-sm">{s.school||'—'}</td>
                   <td className="font-bold text-white">Rs.{(s.monthly_fee||0).toLocaleString()}</td>
                   <td>
-                    <span className={`badge py-1 px-3 ${s.status==='active'?'badge-success glow-success':'badge-danger'}`}>
-                      <div className={`status-dot ${s.status==='active'?'bg-success':'bg-danger'}`}/>
-                      {s.status.toUpperCase()}
+                    <span className={`badge py-1 pl-2.5 pr-3 ${s.status==='active'?'badge-success glow-success':'badge-danger'}`}>
+                      <div className={`status-dot ${s.status==='active'?'bg-success':'bg-danger'}`}/>{s.status.toUpperCase()}
                     </span>
                   </td>
                   <td className="pr-6 text-right">

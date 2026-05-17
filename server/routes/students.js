@@ -70,10 +70,17 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   const { name, phone, grade, school, parent_name, parent_phone, address, monthly_fee, notes } = req.body;
   if (!name || !phone) return res.status(400).json({ error: 'Name and phone are required' });
-  const result = await dbRun('INSERT INTO students (tutor_id,name,phone,grade,school,parent_name,parent_phone,address,monthly_fee,notes) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id',
-    [req.tutor.id, name, phone, grade||null, school||null, parent_name||null, parent_phone||null, address||null, monthly_fee||0, notes||null]);
-  const student = await dbGet('SELECT * FROM students WHERE id = ?', [result.lastInsertRowid]);
-  res.status(201).json({ student });
+  try {
+    const result = await dbRun('INSERT INTO students (tutor_id,name,phone,grade,school,parent_name,parent_phone,address,monthly_fee,notes) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id',
+      [req.tutor.id, name, phone, grade||null, school||null, parent_name||null, parent_phone||null, address||null, monthly_fee||0, notes||null]);
+    const student = await dbGet('SELECT * FROM students WHERE id = ?', [result.lastInsertRowid]);
+    res.status(201).json({ student });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(400).json({ error: 'A student with this phone number already exists.' });
+    }
+    res.status(500).json({ error: 'Failed to create student.' });
+  }
 });
 
 router.put('/:id', async (req, res) => {

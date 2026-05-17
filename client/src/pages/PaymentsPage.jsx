@@ -151,12 +151,11 @@ export default function PaymentsPage() {
                   <td><span className="badge badge-neutral" style={{fontSize:11}}>Grade {p.student_grade||'—'}</span></td>
                   <td className="font-extrabold text-white">Rs.{p.amount.toLocaleString()}</td>
                   <td>
-                    <span className={`badge py-1 px-3 ${
+                    <span className={`badge py-1 pl-2.5 pr-3 ${
                       p.status==='paid'?'badge-success glow-success':
                       p.status==='pending'?'badge-warning':'badge-danger'
                     }`}>
-                      <div className={`status-dot ${p.status==='paid'?'bg-success':p.status==='pending'?'bg-warning':'bg-danger'}`}/>
-                      {p.status.toUpperCase()}
+                      <div className={`status-dot ${p.status==='paid'?'bg-success':p.status==='pending'?'bg-warning':'bg-danger'}`}/>{p.status.toUpperCase()}
                     </span>
                   </td>
                   <td className="text-sm text-muted">

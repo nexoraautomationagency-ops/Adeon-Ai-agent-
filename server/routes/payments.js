@@ -94,6 +94,31 @@ async function handlePaymentSuccess(tutor, paymentId, studentId, month, year) {
   }
 }
 
+router.post('/generate', async (req, res) => {
+  const { month: monthInput, year } = req.body;
+  if (!monthInput || !year) return res.status(400).json({ error: 'month and year required' });
+  const month = normalizationService.normalizeMonth(monthInput);
+
+  try {
+    const students = await dbAll('SELECT id, monthly_fee FROM students WHERE tutor_id = ? AND status = ?', [req.tutor.id, 'active']);
+    let created = 0;
+    
+    for (const student of students) {
+      const existing = await dbGet('SELECT id FROM payments WHERE student_id = ? AND month = ? AND year = ?', [student.id, month, parseInt(year)]);
+      if (!existing) {
+        await dbRun('INSERT INTO payments (tutor_id, student_id, amount, month, year, status) VALUES (?, ?, ?, ?, ?, ?)', 
+          [req.tutor.id, student.id, student.monthly_fee || 0, month, parseInt(year), 'pending']);
+        created++;
+      }
+    }
+    
+    res.json({ success: true, created });
+  } catch (err) {
+    console.error('[Generate Payments Error]', err);
+    res.status(500).json({ error: 'Failed to generate payments' });
+  }
+});
+
 router.post('/', async (req, res) => {
   const { student_id, amount, month: monthInput, year, status, payment_method, notes } = req.body;
   if (!student_id || !amount || !monthInput || !year) return res.status(400).json({ error: 'student_id, amount, month, year required' });
