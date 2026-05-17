@@ -64,7 +64,7 @@ router.put('/settings', async (req, res) => {
     auto_reply_enabled, auto_reply_message, welcome_message, 
     payment_reminder_enabled, payment_reminder_day, ai_tone, 
     bank_name, bank_account, bank_branch, bank_account_holder,
-    institute_name, basic_fee, tute_fee, final_grade
+    institute_name, tutor_name, basic_fee, tute_fee, final_grade
   } = req.body;
 
   // Update tutor institute name if provided
@@ -83,6 +83,7 @@ router.put('/settings', async (req, res) => {
     bank_account=COALESCE(?,bank_account),
     bank_branch=COALESCE(?,bank_branch),
     bank_account_holder=COALESCE(?,bank_account_holder),
+    tutor_name=COALESCE(?,tutor_name),
     basic_fee=COALESCE(?,basic_fee),
     tute_fee=COALESCE(?,tute_fee),
     final_grade=COALESCE(?,final_grade),
@@ -92,7 +93,7 @@ router.put('/settings', async (req, res) => {
       auto_reply_enabled??null, auto_reply_message||null, welcome_message||null, 
       payment_reminder_enabled??null, payment_reminder_day??null, ai_tone||null, 
       bank_name||null, bank_account||null, bank_branch||null, bank_account_holder||null,
-      basic_fee??null, tute_fee??null, final_grade??null,
+      tutor_name||null, basic_fee??null, tute_fee??null, final_grade??null,
       req.tutor.id
     ]
   );

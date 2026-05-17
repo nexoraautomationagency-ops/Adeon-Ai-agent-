@@ -131,7 +131,16 @@ export default function SettingsPage() {
   return (<div style={{maxWidth:700}}>
     <div className="card mb-4">
       <h3 className="card-title mb-4">🏢 Institute Profile</h3>
-      <div className="form-group"><label className="form-label">Institute / School Name</label><input className="form-input" value={settings.institute_name||''} onChange={e=>setSettings({...settings,institute_name:e.target.value})} placeholder="e.g. Excel Science Academy"/></div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <div className="form-group">
+          <label className="form-label">Institute / School Name</label>
+          <input className="form-input" value={settings.institute_name||''} onChange={e=>setSettings({...settings,institute_name:e.target.value})} placeholder="e.g. Excel Science Academy"/>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Tutor Name (Sir/Teacher)</label>
+          <input className="form-input" value={settings.tutor_name||''} onChange={e=>setSettings({...settings,tutor_name:e.target.value})} placeholder="e.g. Sir Saman"/>
+        </div>
+      </div>
     </div>
     <div className="card mb-4">
       <h3 className="card-title mb-4">💰 Global Fee Configuration</h3>
