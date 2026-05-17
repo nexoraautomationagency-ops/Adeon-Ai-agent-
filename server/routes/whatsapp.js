@@ -26,7 +26,7 @@ router.post('/broadcast', async (req, res, next) => {
   try {
     const { message, student_ids, group_id, grade, payment_status, month: monthInput, year: yearInput } = req.body;
     if (!message) return res.status(400).json({ error: 'Message required' });
-    
+
     const normalizationService = require('../services/normalization');
     const month = monthInput ? normalizationService.normalizeMonth(monthInput) : normalizationService.normalizeMonth();
     const year = yearInput || new Date().getFullYear();
@@ -45,9 +45,9 @@ router.post('/broadcast', async (req, res, next) => {
         WHERE s.tutor_id = ? AND s.status = 'active'
       `;
       const params = [month, year, req.tutor.id];
-      
+
       if (grade) { query += " AND s.grade = ?"; params.push(grade); }
-      
+
       if (payment_status === 'paid') {
         query += " AND p.status = 'paid'";
       } else if (payment_status === 'unpaid') {
@@ -71,14 +71,14 @@ router.post('/broadcast', async (req, res, next) => {
     }
 
     if (phones.length === 0) return res.status(400).json({ error: 'No students found matching filters' });
-    
+
     // De-duplicate phones
     const uniquePhones = [...new Set(phones)];
-    const chatIds = uniquePhones.map(p => { 
-      let c = p.replace(/[^0-9]/g, ''); 
-      if (c.startsWith('0')) c = '94' + c.substring(1); 
-      if (!c.startsWith('94')) c = '94' + c; 
-      return c + '@c.us'; 
+    const chatIds = uniquePhones.map(p => {
+      let c = p.replace(/[^0-9]/g, '');
+      if (c.startsWith('0')) c = '94' + c.substring(1);
+      if (!c.startsWith('94')) c = '94' + c;
+      return c + '@c.us';
     });
 
     const results = await whatsappService.broadcastMessage(chatIds, message);
@@ -118,11 +118,11 @@ router.post('/remind', async (req, res, next) => {
   try {
     const { grade, month } = req.body;
     if (!month) return res.status(400).json({ error: 'Month required' });
-    
+
     let query = "SELECT id, name, phone, whatsapp_id FROM students WHERE tutor_id=? AND status='active'";
     const params = [req.tutor.id];
     if (grade) { query += " AND grade LIKE ?"; params.push(`%${grade}%`); }
-    
+
     const students = await dbAll(query, params);
     let sent = 0;
     for (const s of students) {
@@ -132,12 +132,12 @@ router.post('/remind', async (req, res, next) => {
         // Standardize phone if it's just numbers
         let cleanTarget = target;
         if (!target.includes('@')) {
-           if (target.startsWith('0')) cleanTarget = '94' + target.substring(1);
-           if (!cleanTarget.startsWith('94')) cleanTarget = '94' + cleanTarget;
-           cleanTarget += '@c.us';
+          if (target.startsWith('0')) cleanTarget = '94' + target.substring(1);
+          if (!cleanTarget.startsWith('94')) cleanTarget = '94' + cleanTarget;
+          cleanTarget += '@c.us';
         }
-        
-        await whatsappService.sendMessage(cleanTarget, `👋 ඔබේ *${month}* මාසය සඳහා පන්ති ගාස්තු තාමත් ලැබී නැත. කරුණාකර එය ඉක්මනින් පියවන්න. 🙏`);
+
+        await whatsappService.sendMessage(cleanTarget, `👋 ඔබේ *${month}* මාසය සඳහා පන්ති ගාස්තු තාමත් ලැබී නැත. කරුණාකර එය ඉක්මනින් complete කරන්න. 🙏`);
         sent++;
         await new Promise(r => setTimeout(r, 1000));
       }

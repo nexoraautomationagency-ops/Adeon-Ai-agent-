@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const { month: monthInput, year, status, grade } = req.query;
-    
+
     // If month is 'all', we skip the month/year filter
     const isAll = !monthInput || monthInput === 'all';
     const month = !isAll ? normalizationService.normalizeMonth(monthInput) : null;
@@ -60,7 +60,7 @@ router.get('/', async (req, res) => {
 router.patch('/:id', async (req, res) => {
   let { status, tracking_code, photo_url, courier_name } = req.body;
   const delivery = await dbGet('SELECT * FROM tute_deliveries WHERE id = ? AND tutor_id = ?', [req.params.id, req.tutor.id]);
-  
+
   if (!delivery) return res.status(404).json({ error: 'Delivery record not found' });
 
   // Fix Bug 22: Base64 "Buffer Bomb" protection
@@ -71,7 +71,7 @@ router.patch('/:id', async (req, res) => {
     try {
       const [header, content] = photo_url.split(',');
       const mime = header.match(/:(.*?);/)[1];
-      
+
       // Strict MIME validation
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(mime)) {
         return res.status(400).json({ error: 'Invalid file type. Only JPG, PNG and WEBP allowed.' });
@@ -117,13 +117,13 @@ router.patch('/:id', async (req, res) => {
   if (status === 'shipped' && delivery.status !== 'shipped') {
     let target = student.whatsapp_id || student.phone;
     if (target && !target.includes('@')) {
-       // Normalize phone number to 94XXXXXXXXX@c.us format
-       const clean = target.replace(/\D/g, '');
-       const normalized = clean.length === 9 ? '94' + clean : (clean.startsWith('0') ? '94' + clean.slice(1) : clean);
-       target = `${normalized}@c.us`;
+      // Normalize phone number to 94XXXXXXXXX@c.us format
+      const clean = target.replace(/\D/g, '');
+      const normalized = clean.length === 9 ? '94' + clean : (clean.startsWith('0') ? '94' + clean.slice(1) : clean);
+      target = `${normalized}@c.us`;
     }
 
-    const msg = `🌟 *ADEON SCIENCE ACADEMY* 🌟
+    const msg = ` *ADEON SCIENCE ACADEMY* 
 ------------------------------------------
 📦 *TUTE SHIPMENT ALERT*
 
@@ -136,7 +136,7 @@ Hello *${student.name}*, your printed material for *${delivery.month}* has been 
 
 ඔයාට tute එක ලැබුණාම "Tute එක ලැබුණා" කියලා reply එකක් එවන්න. 😊
 ------------------------------------------`;
-    
+
     try {
       if (updated.photo_url) {
         await whatsappService.sendMedia(target, updated.photo_url, msg);

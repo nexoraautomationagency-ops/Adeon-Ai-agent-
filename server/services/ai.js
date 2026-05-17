@@ -367,12 +367,41 @@ Return STRICT JSON ONLY:
       if (lowPrompt.includes('mage detail') || lowPrompt.includes('my detail') || lowPrompt.includes('profile') || lowPrompt.includes('mage vistara') || lowPrompt.includes('my profile')) {
           isDetailRequest = false;
       }
-      // EXCEPTION: Allow complaints, payment issues, and academic questions to bypass the short-circuit
-      if (lowPrompt.includes('gewanna ba') || lowPrompt.includes('salli') || lowPrompt.includes('prashna') || lowPrompt.includes('question') || lowPrompt.includes('complain') || lowPrompt.includes('aulak')) {
-          isDetailRequest = false;
+      
+      // AGGRESSIVE SHORT-CIRCUIT: Questions and Complaints
+      const isQuestionOrComplaint = (
+         lowPrompt.includes('gewanna ba') || 
+         lowPrompt.includes('salli na') || 
+         lowPrompt.includes('prashna') || 
+         lowPrompt.includes('question') || 
+         lowPrompt.includes('complain') || 
+         lowPrompt.includes('aulak') ||
+         lowPrompt.includes('awul') ||
+         lowPrompt.includes('explain') ||
+         lowPrompt.includes('hard') ||
+         lowPrompt.includes('theren') ||
+         lowPrompt.includes('gana')
+      );
+
+      if (isQuestionOrComplaint) {
+          return {
+              text: "මම මේ පණිවිඩය Sir ට යැව්වා 😊",
+              intent: 'COMPLAIN',
+              command: 'ESCALATE',
+              action: 'ESCALATE',
+              data: {}
+          };
       }
 
-      const isDeliveryConfirm = (lowPrompt.includes('labuna') || lowPrompt.includes('laba') || lowPrompt.includes('hambuna') || lowPrompt.includes('hambana') || lowPrompt.includes('received') || lowPrompt.includes('badu') || lowPrompt.includes('awa'));
+      const isDeliveryConfirm = (
+        lowPrompt.includes('labuna') || 
+        lowPrompt.includes('laba') || 
+        lowPrompt.includes('hambuna') || 
+        lowPrompt.includes('hambana') || 
+        lowPrompt.includes('received') || 
+        lowPrompt.includes('badu') || 
+        /\bawa\b/.test(lowPrompt) 
+      );
 
       if (isDeliveryConfirm) {
         return {
