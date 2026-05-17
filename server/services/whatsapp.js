@@ -613,7 +613,8 @@ Show this help message.`;
 
         if (assignedClasses.length > 0) {
           for (const c of assignedClasses) {
-             totalFee += (c.fee || settings?.basic_fee || 0);
+             const feeValue = parseFloat(c.fee) || parseFloat(settings?.basic_fee) || 0;
+             totalFee += feeValue;
              if (c.grade == normalizedGrade) {
                await dbRun('INSERT INTO student_classes (student_id, class_id) VALUES (?, ?) ON CONFLICT DO NOTHING', [sid, c.id]);
              }
@@ -716,12 +717,32 @@ Show this help message.`;
         return false;
       }
 
-      const dbGroup = await dbGet(`SELECT whatsapp_group_id FROM whatsapp_groups WHERE (grade = ?) AND (month IS NULL OR month = ?) LIMIT 1`, [student.grade, month]);
-      if (dbGroup?.whatsapp_group_id) {
-          console.log(`[WhatsApp] Adding ${participantId} (from phone: ${student.phone}) to group for Grade ${student.grade}`);
-          await this.addParticipantToGroup(dbGroup.whatsapp_group_id, participantId);
-      } else {
-          console.warn(`[WhatsApp] No group found for Grade ${student.grade}, Month ${month}`);
+      // Find all classes the student is enrolled in
+      const classes = await dbAll('SELECT class_id FROM student_classes WHERE student_id = ?', [studentId]);
+      
+      let addedToAtLeastOneGroup = false;
+
+      if (classes.length > 0) {
+        // Group sync per class
+        for (const c of classes) {
+            const dbGroup = await dbGet(`SELECT whatsapp_group_id, name FROM whatsapp_groups WHERE class_id = ? AND (month IS NULL OR month = ?) LIMIT 1`, [c.class_id, month]);
+            if (dbGroup?.whatsapp_group_id) {
+               console.log(`[WhatsApp] Adding ${participantId} to specific class group: ${dbGroup.name}`);
+               await this.addParticipantToGroup(dbGroup.whatsapp_group_id, participantId);
+               addedToAtLeastOneGroup = true;
+            }
+        }
+      } 
+      
+      if (!addedToAtLeastOneGroup) {
+        // Fallback to old grade-based logic if no specific classes found or they didn't have groups
+        const dbGroup = await dbGet(`SELECT whatsapp_group_id FROM whatsapp_groups WHERE (grade = ?) AND (month IS NULL OR month = ?) LIMIT 1`, [student.grade, month]);
+        if (dbGroup?.whatsapp_group_id) {
+            console.log(`[WhatsApp] Adding ${participantId} to fallback grade group for Grade ${student.grade}`);
+            await this.addParticipantToGroup(dbGroup.whatsapp_group_id, participantId);
+        } else {
+            console.warn(`[WhatsApp] No group found for Grade ${student.grade}, Month ${month}`);
+        }
       }
       return true;
     } catch (err) { 
