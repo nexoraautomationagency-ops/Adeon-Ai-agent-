@@ -881,47 +881,58 @@ Show this help message.`;
 
   async addParticipantToGroup(groupId, participantId) {
     if (!this.isReady) return;
+    let chat = null;
     try {
       console.log(`[WhatsApp] Attempting to add ${participantId} to group ${groupId}...`);
-      const chat = await this.client.getChatById(groupId);
+      chat = await this.client.getChatById(groupId);
       
+      if (!chat) {
+          throw new Error('Chat not found or failed to load.');
+      }
+
       if (!chat.isGroup) {
           console.error(`[WhatsApp] ID ${groupId} is NOT a group.`);
           return;
       }
 
+      const participants = chat.participants || [];
+
       // Pre-check: Is the bot an admin?
-      const participant = chat.participants.find(p => p.id._serialized === this.client.info.wid._serialized);
+      const participant = participants.find(p => p.id._serialized === this.client.info.wid._serialized);
       if (!participant || (!participant.isAdmin && !participant.isSuperAdmin)) {
-          console.error(`[WhatsApp] 🛑 BOT IS NOT ADMIN in group ${chat.name}. Please make the bot an admin.`);
-          await this.notifyAdmin(`⚠️ *Group Sync Failed*\nI am not an admin in *${chat.name}*. Please make me an admin to add students automatically.`);
+          console.error(`[WhatsApp] 🛑 BOT IS NOT ADMIN in group ${chat.name || groupId}. Please make the bot an admin.`);
+          await this.notifyAdmin(`⚠️ *Group Sync Failed*\nI am not an admin in *${chat.name || groupId}*. Please make me an admin to add students automatically.`);
           return;
       }
 
       // Pre-check: Is student already in the group?
-      const alreadyIn = chat.participants.find(p => p.id._serialized === participantId || p.id.user === participantId.split('@')[0]);
+      const alreadyIn = participants.find(p => p.id._serialized === participantId || p.id.user === participantId.split('@')[0]);
       if (alreadyIn) {
-          console.log(`[WhatsApp] ℹ️ ${participantId} is already in group ${chat.name}`);
-          await this.notifyAdmin(`ℹ️ *Already in Group*\n\n*${participantId.split('@')[0]}* is already a member of *${chat.name}*. No action needed.`);
+          console.log(`[WhatsApp] ℹ️ ${participantId} is already in group ${chat.name || groupId}`);
+          await this.notifyAdmin(`ℹ️ *Already in Group*\n\n*${participantId.split('@')[0]}* is already a member of *${chat.name || groupId}*. No action needed.`);
           return;
       }
 
       await chat.addParticipants([participantId]);
-      console.log(`[WhatsApp] ✅ Successfully added ${participantId} to group ${chat.name}`);
+      console.log(`[WhatsApp] ✅ Successfully added ${participantId} to group ${chat.name || groupId}`);
     } catch (e) {
       console.error(`[WhatsApp] ❌ Direct add failed for ${participantId}:`, e.message);
       try {
-        const inviteCode = await chat.getInviteCode();
-        const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
-        
-        // Notify the student directly
-        await this.sendToPhone(participantId, `ඔයාව class group එකට direct add කරන්න privacy blocks නිසා අපහසු වුණා. 😊\n\nකරුණාකර මේ link එකෙන් group එකට join වෙන්න: ${inviteLink}\n\n_(සටහන: ඔයා link එක click කල පසු, සර් ඔයාව group එකට ඇතුලත් කරගනු ඇත.)_`);
-        
-        // Notify the admin
-        await this.notifyAdmin(`ℹ️ *Group Sync Fallback*\nDirect add failed for *${participantId.split('@')[0]}* due to privacy settings. Sent them the group invite link: ${inviteLink}`);
+        if (chat && typeof chat.getInviteCode === 'function') {
+          const inviteCode = await chat.getInviteCode();
+          const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
+          
+          // Notify the student directly
+          await this.sendToPhone(participantId, `ඔයාව class group එකට direct add කරන්න privacy blocks නිසා අපහසු වුණා. 😊\n\nකරුණාකර මේ link එකෙන් group එකට join වෙන්න: ${inviteLink}\n\n_(සටහන: ඔයා link එක click කල පසු, සර් ඔයාව group එකට ඇතුලත් කරගනු ඇත.)_`);
+          
+          // Notify the admin
+          await this.notifyAdmin(`ℹ️ *Group Sync Fallback*\nDirect add failed for *${participantId.split('@')[0]}* due to privacy settings. Sent them the group invite link: ${inviteLink}`);
+        } else {
+          throw new Error('Group chat properties are not loaded or this is not a valid GroupChat instance.');
+        }
       } catch (linkErr) {
         console.error('[WhatsApp] Failed to get invite link:', linkErr.message);
-        await this.notifyAdmin(`⚠️ *Group Sync Failed*\nDirect add failed for *${participantId.split('@')[0]}* and could not generate an invite link.`);
+        await this.notifyAdmin(`⚠️ *Group Sync Failed*\nDirect add failed for *${participantId.split('@')[0]}* and could not generate an invite link. Reason: ${linkErr.message}`);
       }
     }
   }
