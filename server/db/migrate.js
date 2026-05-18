@@ -360,6 +360,7 @@ async function migrate() {
     { table: 'settings', column: 'basic_fee', type: 'DOUBLE PRECISION DEFAULT 0' },
     { table: 'settings', column: 'tute_fee', type: 'DOUBLE PRECISION DEFAULT 0' },
     { table: 'settings', column: 'final_grade', type: "INTEGER DEFAULT 11" },
+    { table: 'settings', column: 'group_manual_approval', type: "INTEGER DEFAULT 0" },
     { table: 'whatsapp_groups', column: 'class_id', type: 'INTEGER' },
     { table: 'whatsapp_groups', column: 'month', type: 'TEXT' },
     { table: 'whatsapp_groups', column: 'year', type: 'INTEGER' },

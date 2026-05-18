@@ -270,15 +270,29 @@ class WhatsAppService extends EventEmitter {
         const normalized = normalizationService.normalizePhone(authorPhone);
         
         const student = await dbGet(`
-          SELECT id, name, status FROM students 
+          SELECT id, name, status, tutor_id FROM students 
           WHERE status = 'active' 
           AND (whatsapp_id = ? OR normalized_phone = ? OR phone = ?)
         `, [request.author, normalized, authorPhone]);
 
+        let manualApproval = false;
         if (student) {
+          const settings = await dbGet(`
+            SELECT group_manual_approval FROM settings 
+            WHERE tutor_id = ?
+          `, [student.tutor_id]);
+          if (settings && settings.group_manual_approval === 1) {
+            manualApproval = true;
+          }
+        }
+
+        if (student && !manualApproval) {
           console.log(`[WhatsApp] Auto-approving membership request for active student: ${student.name} (${authorPhone})`);
           await this.client.approveGroupMembershipRequests(request.chatId, { requesterIds: [request.author] });
           await this.notifyAdmin(`✅ *Auto-Approved Group Join*\nApproved *${student.name}* (${authorPhone}) for group *${request.chatId.split('@')[0]}* automatically because they are registered and active.`);
+        } else if (student && manualApproval) {
+          console.log(`[WhatsApp] Manual approval required by setting for active student: ${student.name} (${authorPhone})`);
+          await this.notifyAdmin(`⚠️ *Pending Active Student Group Join Request*\nActive Student *${student.name}* (${authorPhone}) requested to join group *${request.chatId.split('@')[0]}* but manual approval is enabled in settings. Request is pending admin approval.`);
         } else {
           console.log(`[WhatsApp] Ignored membership request for unregistered/inactive user: ${authorPhone}`);
           await this.notifyAdmin(`⚠️ *Pending Group Join Request*\nUser *${authorPhone}* requested to join group *${request.chatId.split('@')[0]}* but they are not registered or active in the database. Request is pending admin approval.`);
