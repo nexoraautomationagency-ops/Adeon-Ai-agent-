@@ -126,6 +126,7 @@ export default function PaymentsPage() {
               <tr>
                 <th className="pl-6">Student</th>
                 <th>Grade</th>
+                <th>Classes</th>
                 <th>Amount</th>
                 <th>Payment Status</th>
                 <th>Paid Date</th>
@@ -134,7 +135,7 @@ export default function PaymentsPage() {
             </thead>
             <tbody>
               {payments.length===0 ? (
-                <tr><td colSpan="6"><div className="empty-state py-24"><h3>No payment records found</h3><p>Click "Generate Records" to create entries for {month}.</p></div></td></tr>
+                <tr><td colSpan="7"><div className="empty-state py-24"><h3>No payment records found</h3><p>Click "Generate Records" to create entries for {month}.</p></div></td></tr>
               ) : payments.map(p=>(
                 <tr key={p.id} className="hover:bg-white/5 transition-colors">
                   <td className="pl-6 py-5">
@@ -149,6 +150,13 @@ export default function PaymentsPage() {
                     </div>
                   </td>
                   <td><span className="badge badge-neutral" style={{fontSize:11}}>Grade {p.student_grade||'—'}</span></td>
+                  <td>
+                    <div className="flex flex-wrap gap-1 max-w-[200px]">
+                      {p.student_classes_list ? p.student_classes_list.split(', ').map((cls, i) => (
+                        <span key={i} className="badge badge-neutral bg-card text-[9px] border border-white/5">{cls}</span>
+                      )) : <span className="text-muted text-xs">—</span>}
+                    </div>
+                  </td>
                   <td className="font-extrabold text-white">Rs.{p.amount.toLocaleString()}</td>
                   <td>
                     <span className={`badge py-1 pl-2.5 pr-3 ${

@@ -18,7 +18,12 @@ router.get('/', async (req, res) => {
 
   const totalRes = await dbGet(`SELECT COUNT(*) as total FROM payments p JOIN students s ON s.id = p.student_id ${where}`, params);
   const total = totalRes ? totalRes.total : 0;
-  const payments = await dbAll(`SELECT p.*, s.name as student_name, s.phone as student_phone, s.grade as student_grade FROM payments p JOIN students s ON s.id = p.student_id ${where} ORDER BY p.year DESC, p.month DESC, s.name ASC LIMIT ? OFFSET ?`, [...params, parseInt(limit), parseInt(offset)]);
+  const payments = await dbAll(`SELECT p.*, s.name as student_name, s.phone as student_phone, s.grade as student_grade, 
+    (SELECT string_agg(c.subject || ' (' || c.grade || ')', ', ') 
+     FROM student_classes sc 
+     JOIN classes c ON sc.class_id = c.id 
+     WHERE sc.student_id = s.id) as student_classes_list 
+    FROM payments p JOIN students s ON s.id = p.student_id ${where} ORDER BY p.year DESC, p.month DESC, s.name ASC LIMIT ? OFFSET ?`, [...params, parseInt(limit), parseInt(offset)]);
   res.json({ payments, total, page: parseInt(page), limit: parseInt(limit) });
 });
 
