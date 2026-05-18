@@ -376,8 +376,92 @@ Return STRICT JSON ONLY:
       // OPTIMIZATION: Generate embedding ONCE for the entire message turn
       const embedding = await this.getEmbedding(prompt);
 
-      // AGGRESSIVE SHORT-CIRCUIT: Tute Confirmation & Details
       const lowPrompt = prompt.toLowerCase();
+      // PROGRAMMATIC SCHEDULE/TIME INQUIRY DETECTOR
+      const isScheduleQuery = (
+        lowPrompt.includes('schedule') || 
+        lowPrompt.includes('timetable') || 
+        lowPrompt.includes('time table') || 
+        lowPrompt.includes('පන්ති කාලසටහන') ||
+        lowPrompt.includes('කාලසටහන')
+      ) || (
+        (
+          lowPrompt.includes('time') || 
+          lowPrompt.includes('kawadada') || 
+          lowPrompt.includes('keeyatada') || 
+          lowPrompt.includes('keeyatda') || 
+          lowPrompt.includes('thiyenne') || 
+          lowPrompt.includes('thiyed') || 
+          lowPrompt.includes('dawasa') || 
+          lowPrompt.includes('end') || 
+          lowPrompt.includes('start') || 
+          lowPrompt.includes('පන්ති') || 
+          lowPrompt.includes('කවදද') || 
+          lowPrompt.includes('වේලාව') || 
+          lowPrompt.includes('වෙලාව') ||
+          lowPrompt.includes('කීයද') ||
+          lowPrompt.includes('කීයටද')
+        ) && (
+          lowPrompt.includes('class') || 
+          lowPrompt.includes('grade') || 
+          lowPrompt.includes('theory') || 
+          lowPrompt.includes('revision') || 
+          /\b\d+\b/.test(lowPrompt) ||
+          (studentContext && studentContext.grade)
+        )
+      );
+
+      if (isScheduleQuery) {
+        // Extract grade number from the prompt (e.g. 10, 11, 12, etc.)
+        const gradeMatch = prompt.match(/\b(\d+)\b/);
+        let requestedGrade = gradeMatch ? gradeMatch[1] : null;
+        
+        // If no grade found in the prompt, let's use the student's current grade as fallback!
+        if (!requestedGrade && studentContext && studentContext.grade) {
+          const matchStudentGrade = studentContext.grade.toString().match(/\b(\d+)\b/);
+          if (matchStudentGrade) {
+            requestedGrade = matchStudentGrade[1];
+          }
+        }
+        
+        if (requestedGrade) {
+          const gradeClean = requestedGrade.toString().replace(/\D/g, '');
+          const matchedClasses = (tutorContext.classes || []).filter(c => c.grade.toString().replace(/\D/g, '') === gradeClean);
+          
+          if (matchedClasses.length > 0) {
+            const classLines = matchedClasses.map(c => {
+              const timeRange = c.end_time ? `${c.start_time} - ${c.end_time}` : c.start_time;
+              return `• *Grade ${c.grade} ${c.subject}*: ${c.day_of_week} ${timeRange} (${c.location}) 😊`;
+            }).join('\n');
+            
+            return {
+              text: `Grade ${requestedGrade} සඳහා පන්ති කාලසටහන (Schedule) පහත පරිදි වේ:\n\n${classLines}\n\nවැඩි විස්තර සඳහා ඕනෑම වෙලාවක මෙතැනින් අහන්න! 👍`,
+              intent: 'SCHEDULE',
+              action: 'RESPOND',
+              command: 'RESPOND',
+              data: {}
+            };
+          }
+        } else {
+          // No grade specified: return all active classes for the tutor
+          const activeClasses = tutorContext.classes || [];
+          if (activeClasses.length > 0) {
+            const classLines = activeClasses.map(c => {
+              const timeRange = c.end_time ? `${c.start_time} - ${c.end_time}` : c.start_time;
+              return `• *Grade ${c.grade} ${c.subject}*: ${c.day_of_week} ${timeRange} (${c.location}) 😊`;
+            }).join('\n');
+            
+            return {
+              text: `පන්ති කාලසටහන (Schedule) පහත පරිදි වේ:\n\n${classLines}\n\nවැඩි විස්තර සඳහා ඕනෑම වෙලාවක මෙතැනින් අහන්න! 👍`,
+              intent: 'SCHEDULE',
+              action: 'RESPOND',
+              command: 'RESPOND',
+              data: {}
+            };
+          }
+        }
+      }
+
       let isDetailRequest = (lowPrompt.includes('detail') || lowPrompt.includes('fees') || lowPrompt.includes('keeyada') || lowPrompt.includes('denna') || (lowPrompt.includes('mata') && lowPrompt.includes('ona')));
       
       // EXCEPTION: If they are asking for their OWN profile/details, don't short-circuit
