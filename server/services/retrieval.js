@@ -124,21 +124,21 @@ class RetrievalService {
    * Layer 2: FAQ RAG
    */
   async searchFAQs(queryOrEmbedding, tutorId = null) {
-    return this.vectorSearch(queryOrEmbedding, 'FAQ', tutorId, 0.35, 3);
+    return this.vectorSearch(queryOrEmbedding, 'FAQ', tutorId, 0.48, 3);
   }
 
   /**
    * Layer 3: Style Examples RAG
    */
   async searchStyleExamples(queryOrEmbedding, tutorId = null) {
-    return this.vectorSearch(queryOrEmbedding, 'STYLE', tutorId, 0.3, 2);
+    return this.vectorSearch(queryOrEmbedding, 'STYLE', tutorId, 0.45, 2);
   }
 
   /**
    * Layer 4: SOP Rules RAG
    */
   async searchSOPRules(queryOrEmbedding, tutorId = null) {
-    return this.vectorSearch(queryOrEmbedding, 'SOP', tutorId, 0.3, 2);
+    return this.vectorSearch(queryOrEmbedding, 'SOP', tutorId, 0.45, 2);
   }
 
   /**
