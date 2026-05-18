@@ -497,55 +497,109 @@ Return STRICT JSON ONLY:
         result.action = 'ESCALATE';
       }
 
-      // PROGRAMMATIC OVERRIDE FOR SINGLE CLASS AUTO-SELECTION
-      const regName = result.extracted_data?.name || studentContext.name;
-      const regGrade = result.extracted_data?.grade || studentContext.grade;
-      const regSchool = result.extracted_data?.school || studentContext.school;
-      const regPhone = result.extracted_data?.phone || studentContext.phone;
-      const regMonth = result.extracted_data?.month || studentContext.month;
-      const regAddress = result.extracted_data?.address || studentContext.address;
+      // PROGRAMMATIC OVERRIDE FOR FOOLPROOF REGISTRATION FLOW
+      const finalName = result.extracted_data?.name || studentContext.name;
+      const finalGrade = result.extracted_data?.grade || studentContext.grade;
+      const finalSchool = result.extracted_data?.school || studentContext.school;
+      const finalPhone = result.extracted_data?.phone || studentContext.phone;
+      const finalMonth = result.extracted_data?.month || studentContext.month;
+      const finalAddress = result.extracted_data?.address || studentContext.address;
 
-      if (regName && regGrade && regSchool && regPhone && regMonth && regAddress) {
-        const gradeClean = regGrade.toString().replace(/\D/g, '');
-        const matchedClasses = (tutorContext.classes || []).filter(c => c.grade.toString().replace(/\D/g, '') === gradeClean);
-        
-        if (matchedClasses.length === 1) {
-          const singleClass = matchedClasses[0];
-          result.action = 'REGISTER_STUDENT';
+      const hasAnyDetail = !!(finalName || finalGrade || finalSchool || finalPhone || finalMonth || finalAddress);
+      const isCollecting = studentContext.status === 'lead' || studentContext.conversation_state === 'COLLECTING_DETAILS' || result.intent === 'ADMISSION';
+
+      if (hasAnyDetail && isCollecting) {
+        const missing = [];
+        if (!finalName) missing.push('Name');
+        if (!finalGrade) missing.push('Grade');
+        if (!finalSchool) missing.push('School');
+        if (!finalPhone) missing.push('Phone');
+        if (!finalMonth) missing.push('Month');
+        if (!finalAddress) missing.push('Address');
+
+        if (missing.length > 0) {
+          // Point 1: If details are missing, force action to RESPOND and explicitly list missing fields
+          result.action = 'RESPOND';
+          result.new_state = 'COLLECTING_DETAILS';
+          result.missing_fields = missing;
           if (!result.extracted_data) result.extracted_data = {};
-          result.extracted_data.class_ids = [singleClass.id];
-          result.extracted_data.name = regName;
-          result.extracted_data.grade = regGrade;
-          result.extracted_data.school = regSchool;
-          result.extracted_data.phone = regPhone;
-          result.extracted_data.month = regMonth;
-          result.extracted_data.address = regAddress;
+          result.extracted_data.name = finalName || '';
+          result.extracted_data.grade = finalGrade || '';
+          result.extracted_data.school = finalSchool || '';
+          result.extracted_data.phone = finalPhone || '';
+          result.extracted_data.month = finalMonth || '';
+          result.extracted_data.address = finalAddress || '';
           
-          result.reply = `හරි 😊 ${regName}, ඔයාව Grade ${regGrade} එකට successfully register කරගත්තා!
-
-🎓 Grade ${regGrade} සඳහා මාසික class fee එක Rs. ${singleClass.fee || 1500}
-
+          const missingList = missing.join(', ');
+          result.reply = `හරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: ${missingList}`;
+        } else {
+          // Point 2: If all 6 details are present, check the class count
+          const gradeClean = finalGrade.toString().replace(/\D/g, '');
+          const matchedClasses = (tutorContext.classes || []).filter(c => c.grade.toString().replace(/\D/g, '') === gradeClean);
+          
+          if (matchedClasses.length === 1) {
+            // ONLY ONE CLASS available: Instantly register them (Never ask them to choose!)
+            const singleClass = matchedClasses[0];
+            result.action = 'REGISTER_STUDENT';
+            result.new_state = 'REGISTERED';
+            result.missing_fields = [];
+            if (!result.extracted_data) result.extracted_data = {};
+            result.extracted_data.class_ids = [singleClass.id];
+            result.extracted_data.name = finalName;
+            result.extracted_data.grade = finalGrade;
+            result.extracted_data.school = finalSchool;
+            result.extracted_data.phone = finalPhone;
+            result.extracted_data.month = finalMonth;
+            result.extracted_data.address = finalAddress;
+            
+            result.reply = `හරි 😊 ${finalName}, ඔයාව Grade ${finalGrade} එකට successfully register කරගත්තා!
+ 
+🎓 Grade ${finalGrade} සඳහා මාසික class fee එක Rs. ${singleClass.fee || 1500}
+ 
 Bank Details:
 Bank: ${tutorContext.settings?.bank_name || 'Bank of Ceylon (BOC)'}
 Account Number: ${tutorContext.settings?.bank_account || ''}
 Account Holder: ${tutorContext.settings?.bank_account_holder || ''}
 Branch: ${tutorContext.settings?.bank_branch || ''}
-
+ 
 Payment Rules:
-⭕ Class fee payment receipt එකේ ${regName}, ${regPhone}, ${regMonth}, ${regGrade} කියන details pen එකෙන් ලියලා එවීම අනිවාර්යයි.
+⭕ Class fee payment receipt එකේ ${finalName}, ${finalPhone}, ${finalMonth}, ${finalGrade} කියන details pen එකෙන් ලියලා එවීම අනිවාර්යයි.
 එසේ නොමැති slips accept කරන්නේ නැහැ.
-
+ 
 🪯❌ Online Payment කරනවා නම්, payment කරන වෙලාවේ Description / Remark වලට class එකට සම්බන්ධ වෙන WhatsApp Number එක දาන්න.
 එසේ නොමැති payments accept කරන්නේ නැහැ.
-
-📝❌ Tippex කරපු, කුරුටু ගาපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ.
-
+ 
+📝❌ Tippex කරපු, කුරුටු ගාපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ.
+ 
 📍🖊️ Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
-
+ 
 ${receiptInstruction}`;
+          } else if (matchedClasses.length > 1) {
+            // MULTIPLE CLASSES available: Ask them which one they want to join
+            const alreadySelected = result.extracted_data?.class_ids || [];
+            if (alreadySelected.length === 0) {
+              result.action = 'RESPOND';
+              result.new_state = 'COLLECTING_DETAILS';
+              result.missing_fields = [];
+              if (!result.extracted_data) result.extracted_data = {};
+              result.extracted_data.name = finalName;
+              result.extracted_data.grade = finalGrade;
+              result.extracted_data.school = finalSchool;
+              result.extracted_data.phone = finalPhone;
+              result.extracted_data.month = finalMonth;
+              result.extracted_data.address = finalAddress;
+
+              const classListLines = matchedClasses.map(c => `• ${c.name}`).join('\n');
+              result.reply = `Thank you ${finalName} 😊
+ඔයාගේ details check කරා. Grade ${finalGrade} සඳහා පහත classes available:
+${classListLines}
+ඔයා join වෙන්න කැමති classes මොනවද?
+(Classes කිහිපයකට වුනත් join වෙන්න පුළුවන් 😊)`;
+            }
+          }
         }
       }
-
+      
       if (result.new_state || result.extracted_data) {
         this._updateStudentState(studentContext.id, result);
       }
