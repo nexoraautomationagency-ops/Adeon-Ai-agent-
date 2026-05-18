@@ -373,17 +373,8 @@ Return STRICT JSON ONLY:
         }
       }
 
-      // OPTIMIZATION 3: Dynamic Query Classification for Trivial Messages
-      const trivialPhrases = [
-        /^ok+$/i, /^okay$/i, /^ok sir$/i, /^ok s[i|l]r$/i, /^hari$/i, /^hari sir$/i, /^ela$/i, /^elakiri$/i, /^okey$/i,
-        /^thanks$/i, /^thank you$/i, /^sthuthi$/i, /^stuti$/i, /^thank u$/i, /^thx$/i,
-        /^bye$/i, /^tc$/i, /^take care$/i, /^good bye$/i,
-        /^yes$/i, /^ow$/i, /^ou$/i, /^owu$/i,
-        /^hi$/i, /^hello$/i, /^helo$/i, /^halo$/i
-      ];
-      
-      const trimmedPrompt = prompt.trim().toLowerCase();
-      const isTrivial = trivialPhrases.some(regex => regex.test(trimmedPrompt)) || trimmedPrompt.length <= 4;
+      // OPTIMIZATION: Generate embedding ONCE for the entire message turn
+      const embedding = await this.getEmbedding(prompt);
 
       // AGGRESSIVE SHORT-CIRCUIT: Tute Confirmation & Details
       const lowPrompt = prompt.toLowerCase();
@@ -456,41 +447,16 @@ Return STRICT JSON ONLY:
       }
 
       // 1. Context Retrieval (RAG)
-      let faq = [];
-      let style = [];
-      let sop = [];
-      let detectedIntent = 'UNKNOWN';
-      let intentExamples = [];
-      
-      if (!isTrivial) {
-        const embedding = await this.getEmbedding(prompt);
-        if (embedding) {
-          detectedIntent = await retrievalService.matchIntent(embedding, tutorId);
-          
-          const promises = [];
-          
-          // SEMANTIC QUERY ROUTING (Optimization 4)
-          // Only query FAQs & SOPs for relevant intents
-          if (detectedIntent === 'PAYMENT' || detectedIntent === 'ADMISSION' || lowPrompt.includes('fee') || lowPrompt.includes('class') || lowPrompt.includes('gewanna') || lowPrompt.includes('salli')) {
-            promises.push(retrievalService.searchFAQs(embedding, tutorId).then(res => faq = res));
-            promises.push(retrievalService.searchSOPRules(embedding, tutorId).then(res => sop = res));
-          } else if (detectedIntent === 'SCHEDULE' || lowPrompt.includes('welawa') || lowPrompt.includes('day') || lowPrompt.includes('dawas')) {
-            promises.push(retrievalService.searchSOPRules(embedding, tutorId).then(res => sop = res));
-          } else {
-            // Default searches
-            promises.push(retrievalService.searchFAQs(embedding, tutorId).then(res => faq = res));
-            promises.push(retrievalService.searchSOPRules(embedding, tutorId).then(res => sop = res));
-          }
-          
-          // Style examples are useful for tone consistency
-          promises.push(retrievalService.searchStyleExamples(embedding, tutorId).then(res => style = res));
-          
-          await Promise.all(promises);
-          intentExamples = await retrievalService.getIntentExamples(detectedIntent, prompt, 3);
-        }
-      } else {
-        detectedIntent = 'GREETING';
-      }
+      // High-performance retrieval: Fetch 2-3 most similar snippets for each category.
+      // Higher thresholds (0.45-0.5) ensure only relevant data enters the prompt, keeping it fast.
+      const [faq, style, sop, detectedIntent] = await Promise.all([
+        retrievalService.searchFAQs(embedding, tutorId),
+        retrievalService.searchStyleExamples(embedding, tutorId),
+        retrievalService.searchSOPRules(embedding, tutorId),
+        retrievalService.matchIntent(embedding, tutorId)
+      ]);
+
+      const intentExamples = await retrievalService.getIntentExamples(detectedIntent, prompt, 3);
 
       // NEW: Calculate dynamic receipt instruction before building prompt
       let receiptInstruction = "";
@@ -543,57 +509,40 @@ Return STRICT JSON ONLY:
         const gradeClean = regGrade.toString().replace(/\D/g, '');
         const matchedClasses = (tutorContext.classes || []).filter(c => c.grade.toString().replace(/\D/g, '') === gradeClean);
         
-        if (matchedClasses.length >= 1) {
-          let targetClasses = [];
-          if (result.extracted_data?.class_ids && Array.isArray(result.extracted_data.class_ids) && result.extracted_data.class_ids.length > 0) {
-            targetClasses = (tutorContext.classes || []).filter(c => result.extracted_data.class_ids.includes(c.id));
-          } else if (matchedClasses.length === 1) {
-            targetClasses = [matchedClasses[0]];
-          }
-        
-          if (targetClasses.length > 0) {
-            const classIds = targetClasses.map(c => c.id);
-            const totalFee = targetClasses.reduce((sum, c) => sum + (c.fee || 0), 0);
-            const classNames = targetClasses.map(c => `${c.grade} ${c.subject}`).join(', ');
-        
-            result.action = 'REGISTER_STUDENT';
-            if (!result.extracted_data) result.extracted_data = {};
-            result.extracted_data.class_ids = classIds;
-            result.extracted_data.name = regName;
-            result.extracted_data.grade = regGrade;
-            result.extracted_data.school = regSchool;
-            result.extracted_data.phone = regPhone;
-            result.extracted_data.month = regMonth;
-            result.extracted_data.address = regAddress;
-        
-            const feeBreakdown = targetClasses.map(c => `• ${c.grade} ${c.subject}: Rs. ${c.fee || 1500}`).join('\n');
-            const classFeeText = targetClasses.length === 1 
-              ? `🎓 Grade ${regGrade} සඳහා මාසික class fee එක Rs. ${totalFee}`
-              : `🎓 ලියාපදිංචි වූ පන්ති සඳහා මාසික ගාස්තු විස්තරය:\n${feeBreakdown}\n\n💵 මුළු මාසික ගාස්තුව (Total Fee): Rs. ${totalFee}`;
-        
-            result.reply = `හරි 😊 ${regName}, ඔයාව Grade ${regGrade} (${classNames}) එකට successfully register කරගත්තා!
-        
-        ${classFeeText}
-        
-        Bank Details:
-        Bank: ${tutorContext.settings?.bank_name || 'Bank of Ceylon (BOC)'}
-        Account Number: ${tutorContext.settings?.bank_account || ''}
-        Account Holder: ${tutorContext.settings?.bank_account_holder || ''}
-        Branch: ${tutorContext.settings?.bank_branch || ''}
-        
-        Payment Rules:
-        ⭕ Class fee payment receipt එකේ ${regName}, ${regPhone}, ${regMonth}, ${regGrade} කියන details pen එකෙන් ලියලා එවීම අනිවාර්යයි.
-        එසේ නොමැති slips accept කරන්නේ නැහැ.
-        
-        🪯❌ Online Payment කරනවා නම්, payment කරන වෙලාවේ Description / Remark වලට class එකට සම්බන්ධ වෙන WhatsApp Number එක දාන්න.
-        එසේ නොමැති payments accept කරන්නේ නැහැ.
-        
-        📝❌ Tippex කරපු, කුරුටු ගාපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ.
-        
-        📍🖊️ Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
-        
-        ${receiptInstruction}`;
-          }
+        if (matchedClasses.length === 1) {
+          const singleClass = matchedClasses[0];
+          result.action = 'REGISTER_STUDENT';
+          if (!result.extracted_data) result.extracted_data = {};
+          result.extracted_data.class_ids = [singleClass.id];
+          result.extracted_data.name = regName;
+          result.extracted_data.grade = regGrade;
+          result.extracted_data.school = regSchool;
+          result.extracted_data.phone = regPhone;
+          result.extracted_data.month = regMonth;
+          result.extracted_data.address = regAddress;
+          
+          result.reply = `හරි 😊 ${regName}, ඔයාව Grade ${regGrade} එකට successfully register කරගත්තා!
+
+🎓 Grade ${regGrade} සඳහා මාසික class fee එක Rs. ${singleClass.fee || 1500}
+
+Bank Details:
+Bank: ${tutorContext.settings?.bank_name || 'Bank of Ceylon (BOC)'}
+Account Number: ${tutorContext.settings?.bank_account || ''}
+Account Holder: ${tutorContext.settings?.bank_account_holder || ''}
+Branch: ${tutorContext.settings?.bank_branch || ''}
+
+Payment Rules:
+⭕ Class fee payment receipt එකේ ${regName}, ${regPhone}, ${regMonth}, ${regGrade} කියන details pen එකෙන් ලියලා එවීම අනිවාර්යයි.
+එසේ නොමැති slips accept කරන්නේ නැහැ.
+
+🪯❌ Online Payment කරනවා නම්, payment කරන වෙලාවේ Description / Remark වලට class එකට සම්බන්ධ වෙන WhatsApp Number එක දาන්න.
+එසේ නොමැති payments accept කරන්නේ නැහැ.
+
+📝❌ Tippex කරපු, කුරුටু ගาපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ.
+
+📍🖊️ Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
+
+${receiptInstruction}`;
         }
       }
 
