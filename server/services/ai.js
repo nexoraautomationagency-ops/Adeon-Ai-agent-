@@ -386,19 +386,11 @@ Return STRICT JSON ONLY:
       }
       
       // AGGRESSIVE SHORT-CIRCUIT: Questions and Complaints
-      const isQuestionOrComplaint = (
-         lowPrompt.includes('gewanna ba') || 
-         lowPrompt.includes('salli na') || 
-         lowPrompt.includes('prashna') || 
-         lowPrompt.includes('question') || 
-         lowPrompt.includes('complain') || 
-         lowPrompt.includes('aulak') ||
-         lowPrompt.includes('awul') ||
-         lowPrompt.includes('explain') ||
-         lowPrompt.includes('hard') ||
-         lowPrompt.includes('theren') ||
-         lowPrompt.includes('gana')
-      );
+      const isPaymentComplaint = lowPrompt.includes('gewanna ba') || lowPrompt.includes('salli na') || lowPrompt.includes('amaruy');
+      const isActualComplaint = (lowPrompt.includes('complain') || lowPrompt.includes('aulak') || lowPrompt.includes('awul')) && !lowPrompt.includes('na') && !lowPrompt.includes('ne') && !lowPrompt.includes('naha');
+      const isSubjectQuestion = lowPrompt.includes('hadala denna') || lowPrompt.includes('visadala denna') || lowPrompt.includes('kiyala denna');
+
+      const isQuestionOrComplaint = isPaymentComplaint || isActualComplaint || isSubjectQuestion;
 
       if (isQuestionOrComplaint) {
           return {

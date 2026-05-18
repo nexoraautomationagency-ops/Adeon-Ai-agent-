@@ -250,8 +250,10 @@ class WhatsAppService extends EventEmitter {
         if (msg.type === 'chat') pending.body += "\n" + msg.body;
         pending.timestamp = Date.now();
         if (msg.type === 'image') {
+          const accumulatedText = pending ? pending.body : '';
           this.pendingMessages.delete(msg.from);
-          this._handleMessageGroup(msg, msg.body)
+          const combinedBody = (accumulatedText + "\n" + (msg.body || '')).trim();
+          this._handleMessageGroup(msg, combinedBody)
             .then(() => this.processedMessages.add(msg.id._serialized))
             .catch(e => console.error('[WhatsApp] Image process error:', e.message));
         }
@@ -259,6 +261,32 @@ class WhatsAppService extends EventEmitter {
     });
 
     this.client.on('message_create', async (msg) => { if (msg.fromMe) await this._logMessage(msg, 'outgoing'); });
+
+    // Handle membership approval requests automatically for active registered students
+    this.client.on('group_membership_request', async (request) => {
+      try {
+        console.log(`[WhatsApp] Membership request received for group ${request.chatId} from ${request.author}`);
+        const authorPhone = request.author.split('@')[0].split(':')[0];
+        const normalized = normalizationService.normalizePhone(authorPhone);
+        
+        const student = await dbGet(`
+          SELECT id, name, status FROM students 
+          WHERE status = 'active' 
+          AND (whatsapp_id = ? OR normalized_phone = ? OR phone = ?)
+        `, [request.author, normalized, authorPhone]);
+
+        if (student) {
+          console.log(`[WhatsApp] Auto-approving membership request for active student: ${student.name} (${authorPhone})`);
+          await this.client.approveGroupMembershipRequests(request.chatId, { requesterIds: [request.author] });
+          await this.notifyAdmin(`✅ *Auto-Approved Group Join*\nApproved *${student.name}* (${authorPhone}) for group *${request.chatId.split('@')[0]}* automatically because they are registered and active.`);
+        } else {
+          console.log(`[WhatsApp] Ignored membership request for unregistered/inactive user: ${authorPhone}`);
+          await this.notifyAdmin(`⚠️ *Pending Group Join Request*\nUser *${authorPhone}* requested to join group *${request.chatId.split('@')[0]}* but they are not registered or active in the database. Request is pending admin approval.`);
+        }
+      } catch (err) {
+        console.error('[WhatsApp] group_membership_request error:', err.message);
+      }
+    });
   }
 
   async _handleMessageGroup(msg, combinedBody) {
@@ -331,12 +359,19 @@ Show this help message.`;
         const variants = [senderId, senderId.replace('@c.us', '@lid'), senderId.replace('@lid', '@c.us')];
         const phoneSuffix = (phone && phone.length >= 9) ? phone.slice(-9) : (phone || '');
 
+        const targetNormalized = normalizationService.normalizePhone(phone);
+        const targetVariants = [
+          phone + '@c.us',
+          phone + '@lid',
+          targetNormalized + '@c.us',
+          targetNormalized + '@lid'
+        ];
+
         const student = await dbGet(`
           SELECT * FROM students 
-          WHERE whatsapp_id IN (?, ?, ?) 
-          OR normalized_phone = ? 
-          OR phone = ?
-        `, [...variants, normalizedActual, phone]);
+          WHERE (normalized_phone = ? OR phone = ? OR whatsapp_id IN (?, ?, ?, ?))
+          AND tutor_id = ?
+        `, [targetNormalized, phone, ...targetVariants, tutorId]);
 
         if (student) {
           // 0. Auto-assign fee/class if missing or 0
@@ -387,8 +422,18 @@ Show this help message.`;
         const month = normalizationService.normalizeMonth(monthInput);
         const year = new Date().getFullYear();
         
-        const phoneSuffix = (phone && phone.length >= 9) ? phone.slice(-9) : (phone || '');
-        const student = await dbGet(`SELECT id, name, whatsapp_id, phone FROM students WHERE normalized_phone = ? OR whatsapp_id LIKE ?`, [normalizedActual, '%' + phone]);
+        const targetNormalized = normalizationService.normalizePhone(phone);
+        const targetVariants = [
+          phone + '@c.us',
+          phone + '@lid',
+          targetNormalized + '@c.us',
+          targetNormalized + '@lid'
+        ];
+        const student = await dbGet(`
+          SELECT id, name, whatsapp_id, phone FROM students 
+          WHERE (normalized_phone = ? OR phone = ? OR whatsapp_id IN (?, ?, ?, ?))
+          AND tutor_id = ?
+        `, [targetNormalized, phone, ...targetVariants, tutorId]);
 
         if (student) {
           await dbRun("UPDATE payments SET status = 'unpaid', notes = ? WHERE student_id = ? AND month = ? AND year = ?", [reason, student.id, month, year]);
@@ -802,6 +847,17 @@ Show this help message.`;
       }
 
       console.log(`[WhatsApp] Group created successfully: ${groupId}`);
+
+      // Restrict settings: Only admins can edit info and add members
+      try {
+        const chat = await this.client.getChatById(groupId);
+        await chat.setAddMembersAdminsOnly(true);
+        await chat.setInfoAdminsOnly(true);
+        console.log(`[WhatsApp] Set group settings: Admins only for info & member addition.`);
+      } catch (settingsErr) {
+        console.warn('[WhatsApp] Could not set group settings immediately:', settingsErr.message);
+      }
+
       return { success: true, gid: groupId };
     } catch (e) {
       console.error('[WhatsApp] createGroup error:', e.message);
@@ -840,9 +896,18 @@ Show this help message.`;
       console.log(`[WhatsApp] ✅ Successfully added ${participantId} to group ${chat.name}`);
     } catch (e) {
       console.error(`[WhatsApp] ❌ Direct add failed for ${participantId}:`, e.message);
-      // If it's a specific error like 'not-authorized', notify admin
-      if (e.message.includes('not-authorized') || e.message.includes('403')) {
-          await this.notifyAdmin(`⚠️ *Add Failed*\nCould not add student to group. They might have privacy blocks.`);
+      try {
+        const inviteCode = await chat.getInviteCode();
+        const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
+        
+        // Notify the student directly
+        await this.sendToPhone(participantId, `ඔයාව class group එකට direct add කරන්න privacy blocks නිසා අපහසු වුණා. 😊\n\nකරුණාකර මේ link එකෙන් group එකට join වෙන්න: ${inviteLink}\n\n_(සටහන: ඔයා link එක click කල පසු, සර් ඔයාව group එකට ඇතුලත් කරගනු ඇත.)_`);
+        
+        // Notify the admin
+        await this.notifyAdmin(`ℹ️ *Group Sync Fallback*\nDirect add failed for *${participantId.split('@')[0]}* due to privacy settings. Sent them the group invite link: ${inviteLink}`);
+      } catch (linkErr) {
+        console.error('[WhatsApp] Failed to get invite link:', linkErr.message);
+        await this.notifyAdmin(`⚠️ *Group Sync Failed*\nDirect add failed for *${participantId.split('@')[0]}* and could not generate an invite link.`);
       }
     }
   }
