@@ -165,19 +165,18 @@ REGISTRATION WORKFLOW (SOP)
 
     - **STRICT COMPLETION CHECK**:
       - You MUST verify that ALL 6 fields are present: Name, Grade, School, Phone, Month, and Address.
-      - **DEFERRED MULTI-CLASS SELECTION RULE (CRITICAL)**: ONCE all 6 details are present, check the INSTITUTE DATA > CLASSES list for the extracted Grade. 
-        - If there are MULTIPLE classes for that grade, and the student hasn't specified yet, you MUST ask which classes they want to join. You MUST explicitly list EVERY SINGLE class name available for their Grade in your reply using bullet points. Do NOT summarize or skip names. USE EXACTLY THIS FORMAT:
+      - **CRITICAL SINGLE-CLASS BYPASS**: If ALL 6 fields are present, check the INSTITUTE DATA > CLASSES list. If there is ONLY ONE class for their Grade, you MUST instantly set "action": "REGISTER_STUDENT", automatically add that class's ID to "class_ids", and output the MASTER CONSOLIDATION RULE. NEVER ask them to choose the class if there is only one!
+      - **MULTI-CLASS SELECTION**: If ALL 6 fields are present, BUT there are MULTIPLE classes for their Grade, you MUST set "action": "RESPOND" and ask which classes they want to join using EXACTLY THIS FORMAT:
         "Thank you [Student Name] 😊
         ඔයාගේ details check කරා. Grade [Grade] සඳහා පහත classes available:
         • [Class 1 Name]
         • [Class 2 Name]
         ඔයා join වෙන්න කැමති classes මොනවද?
         (Classes කිහිපයකට වුනත් join වෙන්න පුළුවන් 😊)"
-        - Do NOT complete registration until they specify.
+        - Do NOT complete registration until they specify (If Count > 1).
         - Once they specify (they can choose one or multiple), extract the exact class IDs (e.g., [11, 8]) into the "class_ids" JSON array.
-        - If there is only ONE class for that grade, automatically put its ID in "class_ids".
-      - If any field or class selection is missing, DO NOT send the "Successfully Registered" message. You MUST set the action to "RESPOND" (NOT "REGISTER_STUDENT").
-      - IMPORTANT: DO NOT list or confirm the details you already have. ONLY ask a simple, direct question for the missing fields. (Example: "Grade එක සහ Month එක එවන්න 😊")
+      - If any of the 6 fields are missing (or if class selection is missing when Count > 1), DO NOT send the "Successfully Registered" message. You MUST set the action to "RESPOND" (NOT "REGISTER_STUDENT").
+      - IMPORTANT: DO NOT list or confirm the details you already have. ONLY ask a simple, direct question for the missing fields.
 
     - **GENERAL INQUIRY RULE**:
       - If the student asks for details, fees, bank info, or "mata details ewanna", you MUST respond with the exact *MASTER_TEMPLATE* provided in the context.
@@ -504,6 +503,55 @@ Return STRICT JSON ONLY:
       if (confidence < 0.15 && result.action !== 'REGISTER_STUDENT' && result.action !== 'CONFIRM_DELIVERY' && !safeIntents.includes(result.intent)) {
         result.reply = 'මේ ගැන office එකෙන් confirm කරලා ඔයාට reply එකක් දෙන්නම් 😊';
         result.action = 'ESCALATE';
+      }
+
+      // PROGRAMMATIC OVERRIDE FOR SINGLE CLASS AUTO-SELECTION
+      const regName = result.extracted_data?.name || studentContext.name;
+      const regGrade = result.extracted_data?.grade || studentContext.grade;
+      const regSchool = result.extracted_data?.school || studentContext.school;
+      const regPhone = result.extracted_data?.phone || studentContext.phone;
+      const regMonth = result.extracted_data?.month || studentContext.month;
+      const regAddress = result.extracted_data?.address || studentContext.address;
+
+      if (regName && regGrade && regSchool && regPhone && regMonth && regAddress) {
+        const gradeClean = regGrade.toString().replace(/\D/g, '');
+        const matchedClasses = (tutorContext.classes || []).filter(c => c.grade.toString().replace(/\D/g, '') === gradeClean);
+        
+        if (matchedClasses.length === 1) {
+          const singleClass = matchedClasses[0];
+          result.action = 'REGISTER_STUDENT';
+          if (!result.extracted_data) result.extracted_data = {};
+          result.extracted_data.class_ids = [singleClass.id];
+          result.extracted_data.name = regName;
+          result.extracted_data.grade = regGrade;
+          result.extracted_data.school = regSchool;
+          result.extracted_data.phone = regPhone;
+          result.extracted_data.month = regMonth;
+          result.extracted_data.address = regAddress;
+          
+          result.reply = `හරි 😊 ${regName}, ඔයාව Grade ${regGrade} එකට successfully register කරගත්තා!
+
+🎓 Grade ${regGrade} සඳහා මාසික class fee එක Rs. ${singleClass.fee || 1500}
+
+Bank Details:
+Bank: ${tutorContext.settings?.bank_name || 'Bank of Ceylon (BOC)'}
+Account Number: ${tutorContext.settings?.bank_account || ''}
+Account Holder: ${tutorContext.settings?.bank_account_holder || ''}
+Branch: ${tutorContext.settings?.bank_branch || ''}
+
+Payment Rules:
+⭕ Class fee payment receipt එකේ ${regName}, ${regPhone}, ${regMonth}, ${regGrade} කියන details pen එකෙන් ලියලා එවීම අනිවාර්යයි.
+එසේ නොමැති slips accept කරන්නේ නැහැ.
+
+🪯❌ Online Payment කරනවා නම්, payment කරන වෙලාවේ Description / Remark වලට class එකට සම්බන්ධ වෙන WhatsApp Number එක දาන්න.
+එසේ නොමැති payments accept කරන්නේ නැහැ.
+
+📝❌ Tippex කරපු, කුරුටু ගาපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ.
+
+📍🖊️ Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
+
+${receiptInstruction}`;
+        }
       }
 
       if (result.new_state || result.extracted_data) {
