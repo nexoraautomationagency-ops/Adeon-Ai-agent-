@@ -328,6 +328,10 @@ Return STRICT JSON ONLY:
           if (requestedGrade) {
             master = await dbGet("SELECT content FROM knowledge_base WHERE category = 'FAQ' AND content ILIKE ? AND tutor_id = ? LIMIT 1", [`%grade ${requestedGrade}%`, tutorId]);
           }
+          
+          if (!master) {
+             master = await dbGet("SELECT content FROM knowledge_base WHERE content ILIKE '%*Class Details*%' AND tutor_id = ? LIMIT 1", [tutorId]);
+          }
 
           if (master) {
               return {
