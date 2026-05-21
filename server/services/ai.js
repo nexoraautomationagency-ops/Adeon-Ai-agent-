@@ -233,7 +233,7 @@ Return STRICT JSON ONLY:
       // BUT: If they also mention 'join' or 'class', skip short-circuit and do registration!
       const isRegistrationKeyword = /(join|class|register|admission|එන්න|සම්බන්ධ|පන්ති|regist|add)/i.test(prompt?.toLowerCase());
       const isBasicGreeting = /^(hi|hello|hey|ayubowan|morning|evening|gm|ge|hi\s+admin|hello\s+admin|halo)[!?. ]*$/i.test(prompt?.trim());
-      
+
       if (isBasicGreeting && !isRegistrationKeyword) {
         const tutorName = tutorContext.tutor?.institute_name || 'class';
         return {
@@ -269,53 +269,9 @@ Return STRICT JSON ONLY:
         }
       }
       const lowPrompt = prompt.toLowerCase().trim();
-
-      // PRE-EXTRACT KEY FIELDS: Programmatically capture grade, phone, and month
-      // from the raw message text BEFORE OpenAI processes it. This ensures these
-      // critical fields are never lost even if OpenAI fails to extract them.
-      if (studentContext.id) {
-        // Grade
-        if (!studentContext.grade) {
-          const gradeHint = prompt.match(/(?:grade\s*)(\d+)|(\d+)(?:\s*grade)/i);
-          if (gradeHint) {
-            const detectedGrade = gradeHint[1] || gradeHint[2];
-            try {
-              await dbRun('UPDATE students SET grade = ? WHERE id = ?', [detectedGrade, studentContext.id]);
-              studentContext.grade = detectedGrade;
-              console.log(`[AI] Pre-extracted grade ${detectedGrade} from prompt and saved.`);
-            } catch (e) { /* silent */ }
-          }
-        }
-        // Phone (10-digit SL number starting with 0)
-        if (!studentContext.phone) {
-          const phoneHint = prompt.match(/(?<!\d)(0\d{9})(?!\d)/);
-          if (phoneHint) {
-            try {
-              await dbRun('UPDATE students SET phone = ? WHERE id = ?', [phoneHint[1], studentContext.id]);
-              studentContext.phone = phoneHint[1];
-              console.log(`[AI] Pre-extracted phone ${phoneHint[1]} from prompt and saved.`);
-            } catch (e) { /* silent */ }
-          }
-        }
-        // Month
-        if (!studentContext.pending_month) {
-          const months = ['january','february','march','april','may','june','july','august','september','october','november','december','jan','feb','mar','apr','jun','jul','aug','sep','oct','nov','dec'];
-          const found = months.find(m => lowPrompt.includes(m));
-          if (found) {
-            const fullMonth = found.length <= 3 ? months[months.indexOf(found) - 12] || found : found;
-            const capitalized = fullMonth.charAt(0).toUpperCase() + fullMonth.slice(1);
-            try {
-              await dbRun('UPDATE students SET pending_month = ? WHERE id = ?', [capitalized, studentContext.id]);
-              studentContext.pending_month = capitalized;
-              console.log(`[AI] Pre-extracted month ${capitalized} from prompt and saved.`);
-            } catch (e) { /* silent */ }
-          }
-        }
-      }
-
-      const SCHEDULE_DIRECT = ['schedule','timetable','time table','පන්ති කාලසටහන','කාලසටහන'];
-      const SCHEDULE_TIME = ['time','kawadada','keeyatada','keeyatda','thiyenne','thiyed','thiyen','thiyenawa','thiyenawada','welawa','welawada','dawasa','end','start','පන්ති','කවදද','වේලාව','වේලාව','කීයද','කීයටද'];
-      const SCHEDULE_CLASS = ['class','grade','theory','revision'];
+      const SCHEDULE_DIRECT = ['schedule', 'timetable', 'time table', 'පන්ති කාලසටහන', 'කාලසටහන'];
+      const SCHEDULE_TIME = ['time', 'kawadada', 'keeyatada', 'keeyatda', 'thiyenne', 'thiyed', 'thiyen', 'thiyenawa', 'thiyenawada', 'welawa', 'welawada', 'dawasa', 'end', 'start', 'පන්ති', 'කවදද', 'වේලාව', 'වේලාව', 'කීයද', 'කීයටද'];
+      const SCHEDULE_CLASS = ['class', 'grade', 'theory', 'revision'];
       const isScheduleQuery = SCHEDULE_DIRECT.some(k => lowPrompt.includes(k)) ||
         (SCHEDULE_TIME.some(k => lowPrompt.includes(k)) && (
           SCHEDULE_CLASS.some(k => lowPrompt.includes(k)) || /\b\d+\b/.test(lowPrompt) || !!(studentContext?.grade)
@@ -342,48 +298,46 @@ Return STRICT JSON ONLY:
           };
         }
       }
-      
 
-      const COMPLAINT_WORDS = ['gewanna ba','salli na','amaruy','hadala denna','visadala denna','kiyala denna'];
-
+      const COMPLAINT_WORDS = ['gewanna ba', 'salli na', 'amaruy', 'hadala denna', 'visadala denna', 'kiyala denna'];
       const isComplaint = COMPLAINT_WORDS.some(k => lowPrompt.includes(k)) ||
-        (['complain','aulak','awul'].some(k => lowPrompt.includes(k)) && !['na','ne','naha'].some(k => lowPrompt.includes(k)));
+        (['complain', 'aulak', 'awul'].some(k => lowPrompt.includes(k)) && !['na', 'ne', 'naha'].some(k => lowPrompt.includes(k)));
       if (isComplaint) return { text: 'මම මේ පණිවිඩය Sir ට යැව්වා 😊', intent: 'COMPLAIN', command: 'ESCALATE', action: 'ESCALATE', data: {} };
 
-      const DELIVERY_WORDS = ['labuna','laba','hambuna','hambana','received','badu'];
+      const DELIVERY_WORDS = ['labuna', 'laba', 'hambuna', 'hambana', 'received', 'badu'];
       if (DELIVERY_WORDS.some(k => lowPrompt.includes(k)) || /\bawa\b/.test(lowPrompt))
         return { text: 'Tute එක ලැබුණා කියලා confirm කරාට thanks. ඔයාට තවත් help එකක් ඕනේ නම් ඕනෙම වෙලාවක message කරන්න 👍', intent: 'CONFIRM_DELIVERY', command: 'CONFIRM_DELIVERY', action: 'CONFIRM_DELIVERY', data: {} };
 
       let isDetailRequest = (lowPrompt.includes('detail') || lowPrompt.includes('fees') || lowPrompt.includes('keeyada') || (lowPrompt.includes('mata') && lowPrompt.includes('ona')));
-      
+
       // EXCEPTION: If they are asking for their OWN profile/details, don't short-circuit
       if (lowPrompt.includes('mage detail') || lowPrompt.includes('my detail') || lowPrompt.includes('profile') || lowPrompt.includes('mage vistara') || lowPrompt.includes('my profile')) {
-          isDetailRequest = false;
+        isDetailRequest = false;
       }
-      
+
 
       if (isDetailRequest && !prompt.includes('join')) {
-          // DYNAMIC FETCH: Get the Master Template or Grade-specific Fee
-          const gradeMatch = prompt.match(/grade\s*(\d+)/i) || prompt.match(/(\d+)\s*grade/i);
-          const requestedGrade = gradeMatch ? gradeMatch[1] : null;
-          
-          let master;
-          if (requestedGrade) {
-            master = await dbGet("SELECT content FROM knowledge_base WHERE category = 'FAQ' AND content ILIKE ? AND tutor_id = ? LIMIT 1", [`%grade ${requestedGrade}%`, tutorId]);
-          }
-          
-          if (!master) {
-             master = await dbGet("SELECT content FROM knowledge_base WHERE content ILIKE '%*Class Details*%' AND tutor_id = ? LIMIT 1", [tutorId]);
-          }
+        // DYNAMIC FETCH: Get the Master Template or Grade-specific Fee
+        const gradeMatch = prompt.match(/grade\s*(\d+)/i) || prompt.match(/(\d+)\s*grade/i);
+        const requestedGrade = gradeMatch ? gradeMatch[1] : null;
 
-          if (master) {
-              return {
-                text: master.content,
-                intent: 'OTHER',
-                action: 'RESPOND',
-                data: {}
-              };
-          }
+        let master;
+        if (requestedGrade) {
+          master = await dbGet("SELECT content FROM knowledge_base WHERE category = 'FAQ' AND content ILIKE ? AND tutor_id = ? LIMIT 1", [`%grade ${requestedGrade}%`, tutorId]);
+        }
+
+        if (!master) {
+          master = await dbGet("SELECT content FROM knowledge_base WHERE content ILIKE '%*Class Details*%' AND tutor_id = ? LIMIT 1", [tutorId]);
+        }
+
+        if (master) {
+          return {
+            text: master.content,
+            intent: 'OTHER',
+            action: 'RESPOND',
+            data: {}
+          };
+        }
       }
 
       // 1. Context Retrieval (RAG)
@@ -412,8 +366,8 @@ Return STRICT JSON ONLY:
       const phoneMatch = prompt.match(/(?<![\d])(0\d{9})(?![\d])/);
       let preVerifiedPhone = null;
       if (phoneMatch) {
-          preVerifiedPhone = phoneMatch[1];
-          console.log(`[AI] Pre-verified phone found: ${preVerifiedPhone}`);
+        preVerifiedPhone = phoneMatch[1];
+        console.log(`[AI] Pre-verified phone found: ${preVerifiedPhone}`);
       }
 
       // Detect if the user typed a number but it's the wrong length (for better error UX)
@@ -471,9 +425,9 @@ Return STRICT JSON ONLY:
       ));
 
       const isCollecting = studentContext.status === 'lead' ||
-                           studentContext.conversation_state === 'COLLECTING_DETAILS' ||
-                           result.intent === 'ADMISSION' ||
-                           wasCollectingDetails;
+        studentContext.conversation_state === 'COLLECTING_DETAILS' ||
+        result.intent === 'ADMISSION' ||
+        wasCollectingDetails;
 
       if (!hasAnyDetail && isCollecting) {
         // Student indicated intent to join but hasn't provided any details yet.
@@ -498,7 +452,7 @@ Return STRICT JSON ONLY:
           result.new_state = 'COLLECTING_DETAILS';
           result.missing_fields = missing;
           result.extracted_data = { ...result.extracted_data, name: finalName || '', grade: finalGrade || '', school: finalSchool || '', phone: finalPhone || '', month: finalMonth || '', address: finalAddress || '' };
-          
+
           // IMPROVED: If phone is the only missing field and the user sent a digit sequence
           // (meaning they DID try to give a number but it's the wrong format/length),
           // tell them WHY it failed instead of just saying "Phone" is missing.
@@ -513,9 +467,9 @@ Return STRICT JSON ONLY:
           // Point 2: If all 6 details are present, check the class count
           const gradeClean = finalGrade.toString().replace(/\D/g, '');
           const matchedClasses = (tutorContext.classes || []).filter(c => c.grade.toString().replace(/\D/g, '') === gradeClean);
-          
+
           const receiptData = { finalName, finalPhone, finalMonth, finalGrade };
-          
+
           if (matchedClasses.length === 1) {
             // ONLY ONE CLASS available: Instantly register them (Never ask them to choose!)
             const singleClass = matchedClasses[0];
@@ -525,34 +479,32 @@ Return STRICT JSON ONLY:
             result.extracted_data = { ...result.extracted_data, class_ids: [singleClass.id], name: finalName, grade: finalGrade, school: finalSchool, phone: finalPhone, month: finalMonth, address: finalAddress };
             result.reply = this._generateReceipt(receiptData, tutorContext, receiptInstruction, singleClass.fee || 1500);
           } else if (matchedClasses.length > 1) {
-            // MULTIPLE CLASSES: Let AI handle selection naturally via class_ids extraction.
-            // The INSTITUTE DATA in the system prompt shows [ID: X] for each class.
-            // On the next turn, AI will extract the class_ids from the student's natural reply.
+            // MULTIPLE CLASSES available: Ask them which one they want to join
             const alreadySelected = result.extracted_data?.class_ids || [];
             if (alreadySelected.length === 0) {
-              // First time — ask which class naturally, AI will extract choice next turn
               result.action = 'RESPOND';
               result.new_state = 'COLLECTING_DETAILS';
               result.missing_fields = [];
               if (!result.extracted_data) result.extracted_data = {};
               result.extracted_data = { ...result.extracted_data, name: finalName, grade: finalGrade, school: finalSchool, phone: finalPhone, month: finalMonth, address: finalAddress };
-              const classListLines = matchedClasses.map(c => `• ${c.subject} — ${c.day_of_week} ${c.start_time} - ${c.end_time}`).join('\n');
-              result.reply = `හරි ${finalName} 😊 Grade ${finalGrade} සඳහා classes available:\n\n${classListLines}\n\nඔයා join වෙන්න කැමති class එක කියන්න 😊`;
+
+              const classListLines = matchedClasses.map(c => `• ${c.name}`).join('\n');
+              result.reply = `Thank you ${finalName} 😊\nඔයාගේ details check කරා. Grade ${finalGrade} සඳහා පහත classes available:\n${classListLines}\nඔයා join වෙන්න කැමති classes මොනවද?\n(Classes කිහිපයකට වුනත් join වෙන්න පුළුවන් 😊)`;
             } else {
-              // AI extracted the class_ids — generate receipt
+              // They selected classes! Generate the final receipt using the total fee.
               const selectedClasses = matchedClasses.filter(c => alreadySelected.includes(c.id));
               const totalFee = selectedClasses.reduce((sum, c) => sum + (parseFloat(c.fee) || 0), 0) || 1500;
-              const names = selectedClasses.map(c => `${c.subject} (${c.day_of_week})`).join(' සහ ');
+              const names = selectedClasses.map(c => c.name).join(' සහ ');
+
               result.action = 'REGISTER_STUDENT';
               result.new_state = 'REGISTERED';
               result.missing_fields = [];
-              result.extracted_data = { ...result.extracted_data, class_ids: alreadySelected, name: finalName, grade: finalGrade, school: finalSchool, phone: finalPhone, month: finalMonth, address: finalAddress };
               result.reply = this._generateReceipt(receiptData, tutorContext, receiptInstruction, totalFee, names);
             }
           }
         }
       }
-      
+
       if (result.new_state || result.extracted_data) {
         this._updateStudentState(studentContext.id, result);
       }
@@ -670,11 +622,11 @@ ${receiptInstruction}`;
             updated_at = CURRENT_TIMESTAMP
           WHERE id = ?
         `, [
-          finalName || '', 
-          finalGrade || '', 
-          school || '', 
-          address || '', 
-          phone || '', 
+          finalName || '',
+          finalGrade || '',
+          school || '',
+          address || '',
+          phone || '',
           normalizedPhone || '',
           pendingMonth || '',
           studentId

@@ -61,42 +61,42 @@ class WhatsAppService extends EventEmitter {
     try {
       await this._forceCleanup();
       const isProd = process.env.NODE_ENV === 'production';
-      const baseSessionPath = isProd 
-        ? path.resolve('./.wwebjs_auth') 
-        : 'C:\\AdeonSessions'; 
-      
+      const baseSessionPath = isProd
+        ? path.resolve('./.wwebjs_auth')
+        : 'C:\\AdeonSessions';
+
       if (!fs.existsSync(baseSessionPath)) fs.mkdirSync(baseSessionPath, { recursive: true });
 
       // Fix Bug 46: Support for multitenant sessions if needed
       let tutorId = 1;
       try {
-         const tutor = await dbGet("SELECT id FROM tutors ORDER BY role = 'developer' DESC, id ASC LIMIT 1");
-         if (tutor) tutorId = tutor.id;
-      } catch(e) {}
-      
+        const tutor = await dbGet("SELECT id FROM tutors ORDER BY role = 'developer' DESC, id ASC LIMIT 1");
+        if (tutor) tutorId = tutor.id;
+      } catch (e) { }
+
       const sessionPath = path.join(baseSessionPath, `session-${tutorId}`);
       this._clearLockFiles(sessionPath);
       if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
 
       const store = new SupabaseSessionStore();
-      
+
       // DEPLOYMENT PROTECTION: Ensure the Supabase bucket exists before using RemoteAuth
       if (isProd) {
         try {
-            const { data: buckets } = await supabase.storage.listBuckets();
-            const exists = buckets?.find(b => b.name === 'whatsapp-sessions');
-            if (!exists) {
-                await supabase.storage.createBucket('whatsapp-sessions', { public: false });
-                console.log('[Supabase] ☁️ Created missing whatsapp-sessions bucket.');
-            }
+          const { data: buckets } = await supabase.storage.listBuckets();
+          const exists = buckets?.find(b => b.name === 'whatsapp-sessions');
+          if (!exists) {
+            await supabase.storage.createBucket('whatsapp-sessions', { public: false });
+            console.log('[Supabase] ☁️ Created missing whatsapp-sessions bucket.');
+          }
         } catch (e) {
-            console.warn('[Supabase] ☁️ Bucket check failed, falling back to LocalAuth for safety.');
+          console.warn('[Supabase] ☁️ Bucket check failed, falling back to LocalAuth for safety.');
         }
       }
 
       this.client = new Client({
-        authStrategy: new LocalAuth({ 
-          clientId: `tutor-${tutorId}`, 
+        authStrategy: new LocalAuth({
+          clientId: `tutor-${tutorId}`,
           dataPath: baseSessionPath
         }),
         webVersionCache: {
@@ -106,17 +106,17 @@ class WhatsAppService extends EventEmitter {
         puppeteer: {
           headless: true,
           args: [
-            '--no-sandbox', 
-            '--disable-setuid-sandbox', 
-            '--disable-dev-shm-usage', 
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
             '--disable-gpu',
             '--disable-extensions',
             '--no-first-run',
             '--no-default-browser-check',
             '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
           ],
-          executablePath: process.env.NODE_ENV === 'production' 
-            ? (fs.existsSync('/usr/bin/google-chrome-stable') ? '/usr/bin/google-chrome-stable' : '/usr/bin/chromium-browser') 
+          executablePath: process.env.NODE_ENV === 'production'
+            ? (fs.existsSync('/usr/bin/google-chrome-stable') ? '/usr/bin/google-chrome-stable' : '/usr/bin/chromium-browser')
             : undefined
         }
       });
@@ -218,11 +218,11 @@ class WhatsAppService extends EventEmitter {
 
     this.client.on('message', async (msg) => {
       // Filter system/broadcast messages, statuses, and groups
-      if (msg.fromMe || 
-          msg.from === 'status@broadcast' || 
-          msg.from.includes('@newsletter') ||
-          msg.from.includes('@g.us') || // DO NOT process or log group messages
-          msg.isStatus // DO NOT process status replies/updates
+      if (msg.fromMe ||
+        msg.from === 'status@broadcast' ||
+        msg.from.includes('@newsletter') ||
+        msg.from.includes('@g.us') || // DO NOT process or log group messages
+        msg.isStatus // DO NOT process status replies/updates
       ) return;
 
       if (this.processedMessages.has(msg.id._serialized)) return;
@@ -239,7 +239,7 @@ class WhatsAppService extends EventEmitter {
             }
           }
         }
-        const delay = isLikelyAdmin ? 0 : 1500;
+        const delay = isLikelyAdmin ? 0 : 1000;
 
         setTimeout(async () => {
           try {
@@ -276,7 +276,7 @@ class WhatsAppService extends EventEmitter {
         console.log(`[WhatsApp] Membership request received for group ${request.chatId} from ${request.author}`);
         const authorPhone = request.author.split('@')[0].split(':')[0];
         const normalized = normalizationService.normalizePhone(authorPhone);
-        
+
         const student = await dbGet(`
           SELECT id, name, status, tutor_id FROM students 
           WHERE status = 'active' 
@@ -314,7 +314,7 @@ class WhatsAppService extends EventEmitter {
   async _handleMessageGroup(msg, combinedBody) {
     let senderId = msg.from;
     let actualPhone = senderId.split('@')[0].split(':')[0];
-    
+
     try {
       const contact = await msg.getContact();
       if (contact && contact.number) actualPhone = contact.number.split(':')[0];
@@ -325,13 +325,13 @@ class WhatsAppService extends EventEmitter {
     if (!this._tutorCache || !this._settingsCache || (nowTs - (this._lastCacheUpdate || 0) > 300000)) {
       const myPhone = this.client?.info?.wid?.user || '';
       const myPhoneNormalized = normalizationService.normalizePhone(myPhone);
-      
+
       let tutor;
       if (myPhoneNormalized) {
         tutor = await dbGet('SELECT * FROM tutors WHERE phone = ? OR phone LIKE ?', [myPhone, '%' + myPhoneNormalized.slice(-9)]);
       }
       if (!tutor) tutor = await dbGet("SELECT * FROM tutors ORDER BY role = 'developer' DESC, id ASC LIMIT 1");
-      
+
       if (tutor) {
         const settings = await dbGet('SELECT * FROM settings WHERE tutor_id = ?', [tutor.id]);
         this._tutorCache = tutor;
@@ -354,7 +354,7 @@ class WhatsAppService extends EventEmitter {
 
     if (isAdmin && !isGroup && msg.type === 'chat') {
       const lowerBody = (combinedBody || '').toLowerCase().trim();
-      if (lowerBody === 'adminhelp') { 
+      if (lowerBody === 'adminhelp') {
         const helpMsg = `🛠️ *ADMIN PANEL COMMANDS*
  
 ✅ *approve <phone> <month>*
@@ -369,8 +369,8 @@ Show all students waiting for payment approval.
  
 ℹ️ *adminhelp*
 Show this help message.`;
-        await this.sendMessage(senderId, helpMsg); 
-        return; 
+        await this.sendMessage(senderId, helpMsg);
+        return;
       }
       if (lowerBody.startsWith('approve ')) {
         const parts = combinedBody.split(/\s+/);
@@ -440,10 +440,10 @@ Show this help message.`;
         const phone = parts[1];
         const monthInput = parts[2];
         const reason = parts.slice(3).join(' ') || "Payment could not be verified.";
-        
+
         const month = normalizationService.normalizeMonth(monthInput);
         const year = new Date().getFullYear();
-        
+
         const targetNormalized = normalizationService.normalizePhone(phone);
         const targetVariants = [
           phone + '@c.us',
@@ -481,7 +481,7 @@ Show this help message.`;
         } else {
           let txt = `📋 *PENDING APPROVALS (${currentMonth})*\n\n`;
           pending.forEach((p, i) => {
-            txt += `${i+1}. *${p.name}*\n📱 ${p.phone}\n\n`;
+            txt += `${i + 1}. *${p.name}*\n📱 ${p.phone}\n\n`;
           });
           txt += `To approve: *approve <phone> ${currentMonth}*`;
           await this.sendMessage(senderId, txt);
@@ -495,9 +495,9 @@ Show this help message.`;
       if (!this._settingsCache?.auto_reply_enabled) return;
 
       if (msg.type === 'chat' && (combinedBody || '').trim().length > 0) {
-        const chat = await msg.getChat(); 
+        const chat = await msg.getChat();
         chat.sendStateTyping().catch(e => console.warn('[WhatsApp] Typing error:', e.message)); // Non-blocking
-        
+
         const aiResponse = await aiService.processMessage(combinedBody, senderId, tutorId);
         if (aiResponse && aiResponse.text) {
           await this.sendMessage(senderId, aiResponse.text, 1, aiResponse.intent);
@@ -510,31 +510,31 @@ Show this help message.`;
             const displayName = student?.name ? `${student.name} (Grade ${student.grade})` : actualPhone;
             await this.notifyAdmin(`⚠️ *Alert from Chat*\n👤 *From:* ${displayName}\n💬 *Message:* "${combinedBody}"\nPlease check the chat!`);
           } else if (aiResponse.command === 'CONFIRM_DELIVERY') {
-             try {
-                // Smart Lookup: Try WhatsApp ID, then Normalized Phone
-                let student = await dbGet('SELECT id, name FROM students WHERE whatsapp_id = ?', [senderId]);
-                
-                if (!student) {
-                  const cleanPhone = actualPhone.replace(/\D/g, '');
-                  const suffix = (cleanPhone && cleanPhone.length >= 9) ? cleanPhone.slice(-9) : (cleanPhone || '');
-                  student = await dbGet('SELECT id, name FROM students WHERE phone LIKE ? OR phone LIKE ?', [`%${suffix}`, `%${cleanPhone}`]);
-                }
+            try {
+              // Smart Lookup: Try WhatsApp ID, then Normalized Phone
+              let student = await dbGet('SELECT id, name FROM students WHERE whatsapp_id = ?', [senderId]);
 
-                if (student) {
-                  const delivery = await dbGet("SELECT id FROM tute_deliveries WHERE student_id = ? AND status != 'delivered' ORDER BY created_at DESC LIMIT 1", [student.id]);
-                  if (delivery) {
-                    await dbRun("UPDATE tute_deliveries SET status = 'delivered', updated_at = CURRENT_TIMESTAMP WHERE id = ?", [delivery.id]);
-                    console.log(`✅ Tute delivered for ${student.name}`);
-                    this.emit('db_update', { tutor_id: tutorId, table: 'tute_deliveries', action: 'delivered', name: student.name });
-                  } else {
-                    console.warn(`[WhatsApp] No pending delivery found for ${student.name}`);
-                  }
-                } else {
-                  console.warn(`[WhatsApp] Could not identify student for delivery confirm: ${actualPhone}`);
-                }
-              } catch (e) {
-                console.error('[WhatsApp] Delivery Confirm Error:', e.message);
+              if (!student) {
+                const cleanPhone = actualPhone.replace(/\D/g, '');
+                const suffix = (cleanPhone && cleanPhone.length >= 9) ? cleanPhone.slice(-9) : (cleanPhone || '');
+                student = await dbGet('SELECT id, name FROM students WHERE phone LIKE ? OR phone LIKE ?', [`%${suffix}`, `%${cleanPhone}`]);
               }
+
+              if (student) {
+                const delivery = await dbGet("SELECT id FROM tute_deliveries WHERE student_id = ? AND status != 'delivered' ORDER BY created_at DESC LIMIT 1", [student.id]);
+                if (delivery) {
+                  await dbRun("UPDATE tute_deliveries SET status = 'delivered', updated_at = CURRENT_TIMESTAMP WHERE id = ?", [delivery.id]);
+                  console.log(`✅ Tute delivered for ${student.name}`);
+                  this.emit('db_update', { tutor_id: tutorId, table: 'tute_deliveries', action: 'delivered', name: student.name });
+                } else {
+                  console.warn(`[WhatsApp] No pending delivery found for ${student.name}`);
+                }
+              } else {
+                console.warn(`[WhatsApp] Could not identify student for delivery confirm: ${actualPhone}`);
+              }
+            } catch (e) {
+              console.error('[WhatsApp] Delivery Confirm Error:', e.message);
+            }
           }
         }
       } else if (msg.type === 'image') {
@@ -558,7 +558,7 @@ Show this help message.`;
       const normalizedActual = normalizationService.normalizePhone(phoneOnly);
       const phoneSuffix = (phoneOnly && phoneOnly.length >= 9) ? phoneOnly.slice(-9) : (phoneOnly || '');
       const variants = [senderId, senderId.replace('@c.us', '@lid'), senderId.replace('@lid', '@c.us')];
-      
+
       const tutor = await dbGet("SELECT id FROM tutors ORDER BY role = 'developer' DESC, id ASC LIMIT 1");
       const tutorId = tutor?.id || 1;
 
@@ -569,7 +569,7 @@ Show this help message.`;
       `, [...variants, normalizedActual]);
 
       if (!student) {
-        const res = await dbRun('INSERT INTO students (tutor_id, whatsapp_id, status, normalized_phone, phone, notes) VALUES (?, ?, ?, ?, ?, ?) RETURNING id', 
+        const res = await dbRun('INSERT INTO students (tutor_id, whatsapp_id, status, normalized_phone, phone, notes) VALUES (?, ?, ?, ?, ?, ?) RETURNING id',
           [tutorId, senderId, 'lead', normalizedActual, actualPhone, 'Uploaded receipt before registration']);
         student = { id: res.lastInsertRowid };
       }
@@ -585,7 +585,7 @@ Show this help message.`;
       }
 
       const studentInfo = await dbGet('SELECT name, phone FROM students WHERE id = ?', [student.id]);
-      
+
       // Fixed: Send a warm acknowledgment message
       const ackMessage = "Hari 😊 Receipt එක ලැබුණා. Admin ඒක check කරලා ඉක්මනටම ඔයාව group එකට add කරයි. පැය 24ක් ඇතුළත ඔයාට confirmation message එකක් ලැබෙයි. 👍";
 
@@ -652,39 +652,39 @@ Show this help message.`;
         const finalName = (name && name !== 'Unknown') ? name : student.name;
         const finalGrade = (normalizedGrade && normalizedGrade !== 'N/A') ? normalizedGrade : student.grade;
         await dbRun('UPDATE students SET name=?, phone=?, normalized_phone=?, grade=?, school=?, address=?, whatsapp_id=? WHERE id=?',
-          [finalName, formattedPhone, formattedPhone, finalGrade, school||student.school, data.address||student.address, senderId, studentId]);
+          [finalName, formattedPhone, formattedPhone, finalGrade, school || student.school, data.address || student.address, senderId, studentId]);
       } else {
         const result = await dbRun(`INSERT INTO students (tutor_id, name, phone, normalized_phone, grade, school, address, whatsapp_id, status, monthly_fee) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id`, [tutorId, name, formattedPhone, formattedPhone, normalizedGrade, school, data.address || '', senderId, 'inactive', settings?.basic_fee || 0]);
         student = { id: result.lastInsertRowid };
       }
 
       const sid = studentId || student.id;
-      
+
       // Auto-assign Class and Fee based on Grade and AI Class Selection
       if (sid && normalizedGrade && normalizedGrade !== 'N/A') {
         let totalFee = 0;
         let assignedClasses = [];
 
         if (data.class_ids && Array.isArray(data.class_ids) && data.class_ids.length > 0) {
-           for (const cid of data.class_ids) {
-              const matchedClass = await dbGet('SELECT id, fee, grade FROM classes WHERE id = ? AND is_active = 1', [cid]);
-              if (matchedClass) assignedClasses.push(matchedClass);
-           }
+          for (const cid of data.class_ids) {
+            const matchedClass = await dbGet('SELECT id, fee, grade FROM classes WHERE id = ? AND is_active = 1', [cid]);
+            if (matchedClass) assignedClasses.push(matchedClass);
+          }
         }
-        
+
         // Fallback if AI didn't provide array, or it was empty
         if (assignedClasses.length === 0) {
-           const matchedClass = await dbGet('SELECT id, fee, grade FROM classes WHERE tutor_id = ? AND grade = ? AND is_active = 1 LIMIT 1', [tutorId, normalizedGrade]);
-           if (matchedClass) assignedClasses.push(matchedClass);
+          const matchedClass = await dbGet('SELECT id, fee, grade FROM classes WHERE tutor_id = ? AND grade = ? AND is_active = 1 LIMIT 1', [tutorId, normalizedGrade]);
+          if (matchedClass) assignedClasses.push(matchedClass);
         }
 
         if (assignedClasses.length > 0) {
           for (const c of assignedClasses) {
-             const feeValue = parseFloat(c.fee) || parseFloat(settings?.basic_fee) || 0;
-             totalFee += feeValue;
-             if (c.grade == normalizedGrade) {
-               await dbRun('INSERT INTO student_classes (student_id, class_id) VALUES (?, ?) ON CONFLICT DO NOTHING', [sid, c.id]);
-             }
+            const feeValue = parseFloat(c.fee) || parseFloat(settings?.basic_fee) || 0;
+            totalFee += feeValue;
+            if (c.grade == normalizedGrade) {
+              await dbRun('INSERT INTO student_classes (student_id, class_id) VALUES (?, ?) ON CONFLICT DO NOTHING', [sid, c.id]);
+            }
           }
           await dbRun('UPDATE students SET monthly_fee = ? WHERE id = ?', [totalFee, sid]);
         }
@@ -694,16 +694,16 @@ Show this help message.`;
         // Use the mathematically calculated monthly fee from the student record
         const student = await dbGet('SELECT grade, monthly_fee FROM students WHERE id = ?', [sid]);
         let finalPaymentAmount = parseFloat(student?.monthly_fee) || 0;
-        
+
         // Fallback to dynamic fee only if the monthly fee is 0
         if (finalPaymentAmount === 0) {
-            const gradeNum = parseInt(student?.grade);
-            finalPaymentAmount = parseFloat(settings?.basic_fee) || 1500;
-            if (gradeNum >= 6 && gradeNum <= 9) finalPaymentAmount = 1200;
-            else if (gradeNum >= 10 && gradeNum <= 11) finalPaymentAmount = 1500;
-            // Fix Bug 3: Sync monthly_fee on student record so dashboard never shows Rs.0
-            await dbRun('UPDATE students SET monthly_fee = ? WHERE id = ?', [finalPaymentAmount, sid]);
-            console.log(`[Enrollment] Fee fallback applied for student ${sid}: Rs.${finalPaymentAmount}`);
+          const gradeNum = parseInt(student?.grade);
+          finalPaymentAmount = parseFloat(settings?.basic_fee) || 1500;
+          if (gradeNum >= 6 && gradeNum <= 9) finalPaymentAmount = 1200;
+          else if (gradeNum >= 10 && gradeNum <= 11) finalPaymentAmount = 1500;
+          // Fix Bug 3: Sync monthly_fee on student record so dashboard never shows Rs.0
+          await dbRun('UPDATE students SET monthly_fee = ? WHERE id = ?', [finalPaymentAmount, sid]);
+          console.log(`[Enrollment] Fee fallback applied for student ${sid}: Rs.${finalPaymentAmount}`);
         }
 
         const existingPayment = await dbGet('SELECT id, amount FROM payments WHERE student_id = ? AND month = ? AND year = ?', [sid, month, year]);
@@ -770,7 +770,7 @@ Show this help message.`;
     try {
       const student = await dbGet('SELECT * FROM students WHERE id = ?', [studentId]);
       if (!student || student.status !== 'active') return false;
-      
+
       // CRITICAL: @lid IDs cannot be used to add participants to groups.
       // They are WhatsApp internal privacy IDs. We MUST use the @c.us format derived from the real phone number.
       // Only use whatsapp_id if it's already in @c.us format.
@@ -794,35 +794,35 @@ Show this help message.`;
 
       // Find all classes the student is enrolled in
       const classes = await dbAll('SELECT class_id FROM student_classes WHERE student_id = ?', [studentId]);
-      
+
       let addedToAtLeastOneGroup = false;
 
       if (classes.length > 0) {
         // Group sync per class
         for (const c of classes) {
-            const dbGroup = await dbGet(`SELECT whatsapp_group_id, name FROM whatsapp_groups WHERE class_id = ? AND (month IS NULL OR month = ?) LIMIT 1`, [c.class_id, month]);
-            if (dbGroup?.whatsapp_group_id) {
-               console.log(`[WhatsApp] Adding ${participantId} to specific class group: ${dbGroup.name}`);
-               await this.addParticipantToGroup(dbGroup.whatsapp_group_id, participantId);
-               addedToAtLeastOneGroup = true;
-            }
+          const dbGroup = await dbGet(`SELECT whatsapp_group_id, name FROM whatsapp_groups WHERE class_id = ? AND (month IS NULL OR month = ?) LIMIT 1`, [c.class_id, month]);
+          if (dbGroup?.whatsapp_group_id) {
+            console.log(`[WhatsApp] Adding ${participantId} to specific class group: ${dbGroup.name}`);
+            await this.addParticipantToGroup(dbGroup.whatsapp_group_id, participantId);
+            addedToAtLeastOneGroup = true;
+          }
         }
-      } 
-      
+      }
+
       if (!addedToAtLeastOneGroup) {
         // Fallback to old grade-based logic if no specific classes found or they didn't have groups
         const dbGroup = await dbGet(`SELECT whatsapp_group_id FROM whatsapp_groups WHERE (grade = ?) AND (month IS NULL OR month = ?) LIMIT 1`, [student.grade, month]);
         if (dbGroup?.whatsapp_group_id) {
-            console.log(`[WhatsApp] Adding ${participantId} to fallback grade group for Grade ${student.grade}`);
-            await this.addParticipantToGroup(dbGroup.whatsapp_group_id, participantId);
+          console.log(`[WhatsApp] Adding ${participantId} to fallback grade group for Grade ${student.grade}`);
+          await this.addParticipantToGroup(dbGroup.whatsapp_group_id, participantId);
         } else {
-            console.warn(`[WhatsApp] No group found for Grade ${student.grade}, Month ${month}`);
+          console.warn(`[WhatsApp] No group found for Grade ${student.grade}, Month ${month}`);
         }
       }
       return true;
-    } catch (err) { 
+    } catch (err) {
       console.error('[WhatsApp] Group Sync Error:', err.message);
-      return false; 
+      return false;
     }
   }
 
@@ -833,13 +833,13 @@ Show this help message.`;
       const tutor = await dbGet("SELECT phone FROM tutors ORDER BY role = 'developer' DESC, id ASC LIMIT 1");
       let finalParticipants = [...participants];
       if (tutor?.phone) {
-          const tutorId = this._normalizePhone(tutor.phone);
-          if (!finalParticipants.includes(tutorId)) finalParticipants.push(tutorId);
+        const tutorId = this._normalizePhone(tutor.phone);
+        if (!finalParticipants.includes(tutorId)) finalParticipants.push(tutorId);
       }
 
       console.log(`[WhatsApp] Creating group: ${name}`);
       const result = await this.client.createGroup(name, finalParticipants);
-      
+
       // ULTRA-SAFE ID EXTRACTION: Handle different wwebjs versions
       let groupId = null;
       if (typeof result === 'string') groupId = result;
@@ -847,28 +847,28 @@ Show this help message.`;
       else if (result?.id?._serialized) groupId = result.id._serialized;
       else if (result?.gid) groupId = result.gid;
       else if (result?.id) groupId = result.id;
-      
+
       if (!groupId) throw new Error('Could not extract Group ID from WhatsApp response');
 
       // Promote the tutor to admin
       if (tutor?.phone) {
-          // WAIT 3 SECONDS for server sync before promoting
-          await new Promise(r => setTimeout(r, 3000));
+        // WAIT 3 SECONDS for server sync before promoting
+        await new Promise(r => setTimeout(r, 3000));
+        try {
+          const chat = await this.client.getChatById(groupId);
+          const tutorId = this._normalizePhone(tutor.phone);
+          await chat.promoteParticipants([tutorId]);
+          console.log(`[WhatsApp] Promoted tutor ${tutorId} to admin in ${name}`);
+        } catch (err) {
+          console.warn('[WhatsApp] Could not promote tutor immediately, retrying in 2s...', err.message);
+          await new Promise(r => setTimeout(r, 2000));
           try {
             const chat = await this.client.getChatById(groupId);
             const tutorId = this._normalizePhone(tutor.phone);
             await chat.promoteParticipants([tutorId]);
-            console.log(`[WhatsApp] Promoted tutor ${tutorId} to admin in ${name}`);
-          } catch (err) { 
-            console.warn('[WhatsApp] Could not promote tutor immediately, retrying in 2s...', err.message); 
-            await new Promise(r => setTimeout(r, 2000));
-            try {
-               const chat = await this.client.getChatById(groupId);
-               const tutorId = this._normalizePhone(tutor.phone);
-               await chat.promoteParticipants([tutorId]);
-               console.log(`[WhatsApp] ✅ Promotion retry successful.`);
-            } catch (retryErr) { console.error('[WhatsApp] ❌ Promotion retry failed:', retryErr.message); }
-          }
+            console.log(`[WhatsApp] ✅ Promotion retry successful.`);
+          } catch (retryErr) { console.error('[WhatsApp] ❌ Promotion retry failed:', retryErr.message); }
+        }
       }
 
       console.log(`[WhatsApp] Group created successfully: ${groupId}`);
@@ -896,14 +896,14 @@ Show this help message.`;
     try {
       console.log(`[WhatsApp] Attempting to add ${participantId} to group ${groupId}...`);
       chat = await this.client.getChatById(groupId);
-      
+
       if (!chat) {
-          throw new Error('Chat not found or failed to load.');
+        throw new Error('Chat not found or failed to load.');
       }
 
       if (!chat.isGroup) {
-          console.error(`[WhatsApp] ID ${groupId} is NOT a group.`);
-          return;
+        console.error(`[WhatsApp] ID ${groupId} is NOT a group.`);
+        return;
       }
 
       const participants = chat.participants || [];
@@ -911,17 +911,17 @@ Show this help message.`;
       // Pre-check: Is the bot an admin?
       const participant = participants.find(p => p.id._serialized === this.client.info.wid._serialized);
       if (!participant || (!participant.isAdmin && !participant.isSuperAdmin)) {
-          console.error(`[WhatsApp] 🛑 BOT IS NOT ADMIN in group ${chat.name || groupId}. Please make the bot an admin.`);
-          await this.notifyAdmin(`⚠️ *Group Sync Failed*\nI am not an admin in *${chat.name || groupId}*. Please make me an admin to add students automatically.`);
-          return;
+        console.error(`[WhatsApp] 🛑 BOT IS NOT ADMIN in group ${chat.name || groupId}. Please make the bot an admin.`);
+        await this.notifyAdmin(`⚠️ *Group Sync Failed*\nI am not an admin in *${chat.name || groupId}*. Please make me an admin to add students automatically.`);
+        return;
       }
 
       // Pre-check: Is student already in the group?
       const alreadyIn = participants.find(p => p.id._serialized === participantId || p.id.user === participantId.split('@')[0]);
       if (alreadyIn) {
-          console.log(`[WhatsApp] ℹ️ ${participantId} is already in group ${chat.name || groupId}`);
-          await this.notifyAdmin(`ℹ️ *Already in Group*\n\n*${participantId.split('@')[0]}* is already a member of *${chat.name || groupId}*. No action needed.`);
-          return;
+        console.log(`[WhatsApp] ℹ️ ${participantId} is already in group ${chat.name || groupId}`);
+        await this.notifyAdmin(`ℹ️ *Already in Group*\n\n*${participantId.split('@')[0]}* is already a member of *${chat.name || groupId}*. No action needed.`);
+        return;
       }
 
       await chat.addParticipants([participantId]);
@@ -932,10 +932,10 @@ Show this help message.`;
         if (chat && typeof chat.getInviteCode === 'function') {
           const inviteCode = await chat.getInviteCode();
           const inviteLink = `https://chat.whatsapp.com/${inviteCode}`;
-          
+
           // Notify the student directly
           await this.sendToPhone(participantId, `ඔයාව class group එකට direct add කරන්න privacy blocks නිසා අපහසු වුණා. 😊\n\nකරුණාකර මේ link එකෙන් group එකට join වෙන්න: ${inviteLink}\n\n_(සටහන: ඔයා link එක click කල පසු, සර් ඔයාව group එකට ඇතුලත් කරගනු ඇත.)_`);
-          
+
           // Notify the admin
           await this.notifyAdmin(`ℹ️ *Group Sync Fallback*\nDirect add failed for *${participantId.split('@')[0]}* due to privacy settings. Sent them the group invite link: ${inviteLink}`);
         } else {
@@ -972,15 +972,15 @@ Show this help message.`;
     return (++bucket.count) > 20;
   }
 
-    async _processQueue() {
+  async _processQueue() {
     if (this.isProcessingQueue) return;
     this.isProcessingQueue = true;
     while (this.messageQueue.length > 0) {
       const { chatId, message, options, mediaUrl } = this.messageQueue.shift();
-      try { 
-        const sent = await this.client.sendMessage(chatId, message, options || {}); 
+      try {
+        const sent = await this.client.sendMessage(chatId, message, options || {});
         await this._logMessage(sent, 'outgoing', 0, mediaUrl || null);
-        await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000)); 
+        await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000));
       } catch (e) {
         console.error('[WhatsApp] Queue send error:', e.message);
       }
@@ -998,23 +998,23 @@ Show this help message.`;
     try {
       const admins = await dbAll('SELECT phone FROM tutors WHERE id = ? UNION SELECT phone FROM tutor_admins WHERE tutor_id = ?', [tutorId, tutorId]);
       const adminSet = new Set();
-      
+
       admins.forEach(a => {
         if (!a.phone) return;
-        
-        const waId = this._normalizePhone(a.phone); 
+
+        const waId = this._normalizePhone(a.phone);
         if (waId) {
           adminSet.add(waId);
           adminSet.add(waId.replace('@c.us', '@lid'));
         }
-        
-        const local = normalizationService.normalizePhone(a.phone); 
+
+        const local = normalizationService.normalizePhone(a.phone);
         if (local) adminSet.add(local);
-        
+
         const numeric = a.phone.replace(/[^0-9]/g, '');
         if (numeric.length >= 9) adminSet.add(numeric);
       });
-      
+
       this._adminCache.set(cacheKey, adminSet);
       this._lastAdminUpdate.set(cacheKey, now);
       return adminSet;
