@@ -83,41 +83,8 @@ class AIService {
     throw lastError;
   }
 
-  _getMissingFields(studentContext) {
-    const missing = [];
-    if (!studentContext.name) missing.push('name');
-    if (!studentContext.grade) missing.push('grade');
-    if (!studentContext.school) missing.push('school');
-    // We already have their WhatsApp ID, but we ask for phone if it's different or missing
-    if (!studentContext.phone) missing.push('phone');
-    return missing;
-  }
-
-  _getInstantGreeting(tutorName) {
-    const greetings = [
-      `👋 Hello! මම ${tutorName} admin 😊 අද මම help කරන්නේ කොහොමද?`
-    ];
-    return greetings[Math.floor(Math.random() * greetings.length)];
-  }
-
   _buildSystemPrompt(context) {
-    const {
-      tutorContext,
-      studentContext,
-      faq,
-      style,
-      sop,
-      intentExamples,
-      preVerifiedPhone
-    } = context;
-
-    const missingFields = this._getMissingFields(studentContext);
-    const receiptInstruction = context.receipt_instruction || '';
-
-    const isReceiptUploaded = studentContext.notes === 'Uploaded receipt before registration';
-    const finalPaymentLine = isReceiptUploaded
-      ? "Hari 😊 Receipt එක ලැබුණා. Admin ඒක check කරලා ඉක්මනටම ඔයාව group එකට add කරයි. පැය 24ක් ඇතුළත ඔයාට confirmation message එකක් ලැබෙයි. 👍"
-      : "කරුණාකර payment එක කරලා receipt එක මෙතනට එවන්න. ඊට පස්සේ ඔයාව official WhatsApp group එකට add කරන්නම්. 😊";
+    const { tutorContext, studentContext, faq, style, sop, intentExamples, preVerifiedPhone } = context;
 
     return `
 You are a natural Sri Lankan class admin chatting through WhatsApp. Warm, fast, slightly casual, human.
@@ -139,62 +106,14 @@ TONE & STYLE RULES
 REGISTRATION WORKFLOW (SOP)
 ==================================================
 1. IF student intent is ADMISSION/JOIN:
-   - Ask for details using this natural format: "හරි 😊 register වෙන්න ඔයාගේ විස්තර ටික එවන්න: Name, Grade, School, Phone, Month සහ Address."
-   - DO NOT ask them to choose a class until AFTER they have provided their details (which includes the Grade).
-   
-    - **STRICT PHONE VALIDATION**: 
-      - A valid number MUST be exactly 10 digits starting with 0.
-      - NOTE: If the context says a "Pre-verified phone" was found, you MUST accept it as valid even if it is surrounded by other text. Do NOT flag it as an error.
-      - IF AND ONLY IF no 10-digit sequence exists, say: "ඔයාගේ phone number එක වැරදියි වගේ 😊 (Exactly 10 digits තියෙන්න ඕනේ. Example: 0771234567)"
-
-    - **STRICT COMPLETION CHECK**:
-      - You MUST verify that ALL 6 fields are present: Name, Grade, School, Phone, Month, and Address.
-      - **CRITICAL SINGLE-CLASS BYPASS**: If ALL 6 fields are present, check the INSTITUTE DATA > CLASSES list. If there is ONLY ONE class for their Grade, you MUST instantly set "action": "REGISTER_STUDENT", automatically add that class's ID to "class_ids", and output the MASTER CONSOLIDATION RULE. NEVER ask them to choose the class if there is only one!
-      - **MULTI-CLASS SELECTION**: If ALL 6 fields are present, BUT there are MULTIPLE classes for their Grade, you MUST set "action": "RESPOND" and ask which classes they want to join using EXACTLY THIS FORMAT:
-        "Thank you [Student Name] 😊
-        ඔයාගේ details check කරා. Grade [Grade] සඳහා පහත classes available:
-        • [Class 1 Name]
-        • [Class 2 Name]
-        ඔයා join වෙන්න කැමති classes මොනවද?
-        (Classes කිහිපයකට වුනත් join වෙන්න පුළුවන් 😊)"
-        - Do NOT complete registration until they specify (If Count > 1).
-        - Once they specify (they can choose one or multiple), extract the exact class IDs (e.g., [11, 8]) into the "class_ids" JSON array.
-      - If any of the 6 fields are missing (or if class selection is missing when Count > 1), DO NOT send the "Successfully Registered" message. You MUST set the action to "RESPOND" (NOT "REGISTER_STUDENT").
-      - IMPORTANT: DO NOT list or confirm the details you already have. ONLY ask a simple, direct question for the missing fields.
-
-    - **GENERAL INQUIRY RULE**:
-      - If the student asks for details, fees, bank info, or "mata details ewanna", you MUST respond with the exact *MASTER_TEMPLATE* provided in the context.
-      - DO NOT use any other schedule or fee info. Use ONLY the Master Template.
-
-    - **TUTOR INQUIRY RULE**:
-      - If the student asks for the teacher's name or details (e.g., "sirge nama mokakda", "teacher kauda", "sirge wisthara ewanna"), you MUST reply EXACTLY with this phrase and NOTHING else: "Sir ගේ නම ${tutorContext.settings?.tutor_name || 'අපේ Sir'} 😊". Do NOT add extra words like "මට" (mata).
-
-    - **CLASS AVAILABILITY INQUIRY RULE**:
-      - If a student asks if there are classes for a specific grade or medium (e.g., "Grade 11 class thiyenawada?", "english medium thiyenawada?"), you MUST say "Ow 😊" (if they exist) and explicitly list ALL matching classes from the INSTITUTE DATA > CLASSES list using this exact format:
-        "Ow 😊 Grade [Grade] සඳහා පහත classes available:
-        • [Class 1 Name]
-        • [Class 2 Name]
-        ඔයා join වෙන්න කැමති classes මොනවද?"
-      - **CRITICAL VOCABULARY**: In class names, "EM" stands for "English Medium" and "SM" stands for "Sinhala Medium". Use this knowledge to match their request!
-      
-    - **PROFILE INQUIRY RULE**:
-      - IF the student specifically asks for their OWN profile or their OWN details (e.g., "mage details", "my profile", "mage vistara"), you MUST reply by listing the details found in the KNOWN STUDENT DATA section. 
-      - Format: "Ow 😊 [Name], ඔයාගේ details: \nName: [Name]\nGrade: [Grade]\nSchool: [School]\nPhone: [Phone]\nAddress: [Address]"
-
-    - **PROFILE UPDATE RULE**:
-      - IF an active student asks to change or update a specific detail (e.g., "my phone changed", "update my address", "I moved to a new school", "mage phone number change una", "address update karanna"), you MUST:
-        1. Extract ONLY the new value into the correct "extracted_data" field.
-           (new phone number → extracted_data.phone | new school → extracted_data.school | new address → extracted_data.address)
-        2. Set "action": "RESPOND".
-        3. Reply EXACTLY: "හරි 😊 ඔයාගේ [field name] update කරා."
-        4. DO NOT ask for other missing fields. DO NOT trigger the registration flow.
-      - IF the student tries to change their Name or Grade, reply EXACTLY:
-        "Name/Grade change කරන්න Sir ට directly contact කරන්න 😊" — do NOT extract name or grade.
-
-    - **MASTER CONSOLIDATION RULE**:
-      - Once ALL 6 fields are valid (Name, Grade, School, Phone, Address, Month) AND the class_ids are extracted, you MUST set the "action" field to "REGISTER_STUDENT".
-      - Reply EXACTLY: "Ok 😊" (The system will automatically generate the full receipt and bank details).
-      - DO NOT ask for confirmation. DO NOT wait for another message.
+    - **PHONE**: Extract the number as-is into extracted_data.phone. If "Pre-verified Phone" is shown in context, accept it without question.
+    - **FIELD COLLECTION**: Extract all 6 fields (Name, Grade, School, Phone, Month, Address) into extracted_data.
+    - **MULTI-CLASS SELECTION**: Once they specify a class, extract the class IDs into "class_ids" JSON array.
+    - **GENERAL INQUIRY RULE**: If asked for details/fees/bank info, respond with the exact *MASTER_TEMPLATE* provided in context.
+    - **TUTOR INQUIRY RULE**: If asked for teacher's name, reply EXACTLY: "Sir ගේ නම ${tutorContext.settings?.tutor_name || 'අපේ Sir'} 😊".
+    - **CLASS AVAILABILITY INQUIRY RULE**: If asked if there are classes, say "Ow 😊" and list ALL matching classes from INSTITUTE DATA.
+    - **PROFILE INQUIRY RULE**: If asked for their OWN profile, reply by listing details from KNOWN STUDENT DATA.
+    - **PROFILE UPDATE RULE**: If an active student updates a detail, extract ONLY the new value into "extracted_data". For Name/Grade changes: reply "Name/Grade change කරන්න Sir ට directly contact කරන්න 😊" and DO NOT extract.
 
 
 ==================================================
@@ -318,7 +237,7 @@ Return STRICT JSON ONLY:
       if (isBasicGreeting && !isRegistrationKeyword) {
         const tutorName = tutorContext.tutor?.institute_name || 'class';
         return {
-          text: this._getInstantGreeting(tutorName),
+          text: `👋 Hello! මම ${tutorName} admin 😊 අද මම help කරන්නේ කොහොමද?`,
           intent: 'GREETING',
           action: 'RESPOND',
           data: {}
@@ -354,90 +273,44 @@ Return STRICT JSON ONLY:
       const embedding = await this.getEmbedding(prompt);
 
       const lowPrompt = prompt.toLowerCase();
-      // PROGRAMMATIC SCHEDULE/TIME INQUIRY DETECTOR
-      const isScheduleQuery = (
-        lowPrompt.includes('schedule') || 
-        lowPrompt.includes('timetable') || 
-        lowPrompt.includes('time table') || 
-        lowPrompt.includes('පන්ති කාලසටහන') ||
-        lowPrompt.includes('කාලසටහන')
-      ) || (
-        (
-          lowPrompt.includes('time') || 
-          lowPrompt.includes('kawadada') || 
-          lowPrompt.includes('keeyatada') || 
-          lowPrompt.includes('keeyatda') || 
-          lowPrompt.includes('thiyenne') || 
-          lowPrompt.includes('thiyed') || 
-          lowPrompt.includes('dawasa') || 
-          lowPrompt.includes('end') || 
-          lowPrompt.includes('start') || 
-          lowPrompt.includes('පන්ති') || 
-          lowPrompt.includes('කවදද') || 
-          lowPrompt.includes('වේලාව') || 
-          lowPrompt.includes('වෙලාව') ||
-          lowPrompt.includes('කීයද') ||
-          lowPrompt.includes('කීයටද')
-        ) && (
-          lowPrompt.includes('class') || 
-          lowPrompt.includes('grade') || 
-          lowPrompt.includes('theory') || 
-          lowPrompt.includes('revision') || 
-          /\b\d+\b/.test(lowPrompt) ||
-          (studentContext && studentContext.grade)
-        )
-      );
+      const SCHEDULE_DIRECT = ['schedule','timetable','time table','පන්ති කාලසටහන','කාලසටහන'];
+      const SCHEDULE_TIME = ['time','kawadada','keeyatada','keeyatda','thiyenne','thiyed','dawasa','end','start','පන්ති','කවදද','වේලාව','වේලාව','කීයද','කීයටද'];
+      const SCHEDULE_CLASS = ['class','grade','theory','revision'];
+      const isScheduleQuery = SCHEDULE_DIRECT.some(k => lowPrompt.includes(k)) ||
+        (SCHEDULE_TIME.some(k => lowPrompt.includes(k)) && (
+          SCHEDULE_CLASS.some(k => lowPrompt.includes(k)) || /\b\d+\b/.test(lowPrompt) || !!(studentContext?.grade)
+        ));
 
       if (isScheduleQuery) {
-        // Extract grade number from the prompt (e.g. 10, 11, 12, etc.)
-        const gradeMatch = prompt.match(/\b(\d+)\b/);
-        let requestedGrade = gradeMatch ? gradeMatch[1] : null;
-        
-        // If no grade found in the prompt, let's use the student's current grade as fallback!
-        if (!requestedGrade && studentContext && studentContext.grade) {
-          const matchStudentGrade = studentContext.grade.toString().match(/\b(\d+)\b/);
-          if (matchStudentGrade) {
-            requestedGrade = matchStudentGrade[1];
-          }
-        }
-        
-        if (requestedGrade) {
-          const gradeClean = requestedGrade.toString().replace(/\D/g, '');
-          const matchedClasses = (tutorContext.classes || []).filter(c => c.grade.toString().replace(/\D/g, '') === gradeClean);
-          
-          if (matchedClasses.length > 0) {
-            const classLines = matchedClasses.map(c => {
-              const timeRange = c.end_time ? `${c.start_time} - ${c.end_time}` : c.start_time;
-              return `• *Grade ${c.grade} ${c.subject}*: ${c.day_of_week} ${timeRange} (${c.location}) 😊`;
-            }).join('\n');
-            
-            return {
-              text: `Grade ${requestedGrade} සඳහා පන්ති කාලසටහන (Schedule) පහත පරිදි වේ:\n\n${classLines}\n\nවැඩි විස්තර සඳහා ඕනෑම වෙලාවක මෙතැනින් අහන්න! 👍`,
-              intent: 'SCHEDULE',
-              action: 'RESPOND',
-              command: 'RESPOND',
-              data: {}
-            };
-          }
-        } else {
-          // No grade specified: return all active classes for the tutor
-          const activeClasses = tutorContext.classes || [];
-          if (activeClasses.length > 0) {
-            const classLines = activeClasses.map(c => {
-              const timeRange = c.end_time ? `${c.start_time} - ${c.end_time}` : c.start_time;
-              return `• *Grade ${c.grade} ${c.subject}*: ${c.day_of_week} ${timeRange} (${c.location}) 😊`;
-            }).join('\n');
-            
-            return {
-              text: `පන්ති කාලසටහන (Schedule) පහත පරිදි වේ:\n\n${classLines}\n\nවැඩි විස්තර සඳහා ඕනෑම වෙලාවක මෙතැනින් අහන්න! 👍`,
-              intent: 'SCHEDULE',
-              action: 'RESPOND',
-              command: 'RESPOND',
-              data: {}
-            };
-          }
+        const gradeMatch = prompt.match(/\b(\d+)\b/) ||
+          (studentContext?.grade ? studentContext.grade.toString().match(/\b(\d+)\b/) : null);
+        const requestedGrade = gradeMatch ? gradeMatch[1] : null;
+        const allClasses = tutorContext.classes || [];
+        const matchedClasses = requestedGrade
+          ? allClasses.filter(c => c.grade.toString().replace(/\D/g, '') === requestedGrade.replace(/\D/g, ''))
+          : allClasses;
+
+        if (matchedClasses.length > 0) {
+          const classLines = matchedClasses.map(c => {
+            const timeRange = c.end_time ? `${c.start_time} - ${c.end_time}` : c.start_time;
+            return `📅 *${c.day_of_week}*\n⏰ ${timeRange}\n🎓 Grade ${c.grade} ${c.subject}\n📍 ${c.location}`;
+          }).join('\n\n');
+          const prefix = requestedGrade ? `Grade ${requestedGrade} සඳහා ` : '';
+          return {
+            text: `✨ ${prefix}පන්ති කාලසටහන (Schedule) ✨\n\n${classLines}\n\nවැඩි විස්තර සඳහා ඕනෑම වෙලාවක මෙතැනින් අහන්න! 👍`,
+            intent: 'SCHEDULE', action: 'RESPOND', command: 'RESPOND', data: {}
+          };
         }
       }
+
+      const COMPLAINT_WORDS = ['gewanna ba','salli na','amaruy','hadala denna','visadala denna','kiyala denna'];
+      const isComplaint = COMPLAINT_WORDS.some(k => lowPrompt.includes(k)) ||
+        (['complain','aulak','awul'].some(k => lowPrompt.includes(k)) && !['na','ne','naha'].some(k => lowPrompt.includes(k)));
+      if (isComplaint) return { text: 'මම මේ පණිවිඩය Sir ට යැව්වා 😊', intent: 'COMPLAIN', command: 'ESCALATE', action: 'ESCALATE', data: {} };
+
+      const DELIVERY_WORDS = ['labuna','laba','hambuna','hambana','received','badu'];
+      if (DELIVERY_WORDS.some(k => lowPrompt.includes(k)) || /\bawa\b/.test(lowPrompt))
+        return { text: 'Tute එක ලැබුණා කියලා confirm කරාට thanks. ඔයාට තවත් help එකක් ඕනේ නම් ඕනෙම වෙලාවක message කරන්න 👍', intent: 'CONFIRM_DELIVERY', command: 'CONFIRM_DELIVERY', action: 'CONFIRM_DELIVERY', data: {} };
 
       let isDetailRequest = (lowPrompt.includes('detail') || lowPrompt.includes('fees') || lowPrompt.includes('keeyada') || (lowPrompt.includes('mata') && lowPrompt.includes('ona')));
       
@@ -446,42 +319,6 @@ Return STRICT JSON ONLY:
           isDetailRequest = false;
       }
       
-      // AGGRESSIVE SHORT-CIRCUIT: Questions and Complaints
-      const isPaymentComplaint = lowPrompt.includes('gewanna ba') || lowPrompt.includes('salli na') || lowPrompt.includes('amaruy');
-      const isActualComplaint = (lowPrompt.includes('complain') || lowPrompt.includes('aulak') || lowPrompt.includes('awul')) && !lowPrompt.includes('na') && !lowPrompt.includes('ne') && !lowPrompt.includes('naha');
-      const isSubjectQuestion = lowPrompt.includes('hadala denna') || lowPrompt.includes('visadala denna') || lowPrompt.includes('kiyala denna');
-
-      const isQuestionOrComplaint = isPaymentComplaint || isActualComplaint || isSubjectQuestion;
-
-      if (isQuestionOrComplaint) {
-          return {
-              text: "මම මේ පණිවිඩය Sir ට යැව්වා 😊",
-              intent: 'COMPLAIN',
-              command: 'ESCALATE',
-              action: 'ESCALATE',
-              data: {}
-          };
-      }
-
-      const isDeliveryConfirm = (
-        lowPrompt.includes('labuna') || 
-        lowPrompt.includes('laba') || 
-        lowPrompt.includes('hambuna') || 
-        lowPrompt.includes('hambana') || 
-        lowPrompt.includes('received') || 
-        lowPrompt.includes('badu') || 
-        /\bawa\b/.test(lowPrompt) 
-      );
-
-      if (isDeliveryConfirm) {
-        return {
-          text: "Tute එක ලැබුණා කියලා confirm කරාට thanks. ඔයාට තවත් help එකක් ඕනේ නම් ඕනෙම වෙලාවක message කරන්න 👍",
-          intent: 'CONFIRM_DELIVERY',
-          command: 'CONFIRM_DELIVERY',
-          action: 'CONFIRM_DELIVERY',
-          data: {}
-        };
-      }
 
       if (isDetailRequest && !prompt.includes('join')) {
           // DYNAMIC FETCH: Get the Master Template or Grade-specific Fee
@@ -524,12 +361,17 @@ Return STRICT JSON ONLY:
       }
 
       // 2. EXTRACTION ENHANCEMENT: Pre-verify 10-digit phone numbers in the prompt
-      const phoneMatch = prompt.match(/(0\d{9})/);
+      // Use word boundaries to avoid partially matching longer numbers (e.g., 11-digit typos)
+      const phoneMatch = prompt.match(/(?<![\d])(0\d{9})(?![\d])/);
       let preVerifiedPhone = null;
       if (phoneMatch) {
           preVerifiedPhone = phoneMatch[1];
           console.log(`[AI] Pre-verified phone found: ${preVerifiedPhone}`);
       }
+
+      // Detect if the user typed a number but it's the wrong length (for better error UX)
+      const anyNumberMatch = prompt.match(/(\d{7,15})/);
+      const hasInvalidPhone = anyNumberMatch && !phoneMatch; // They sent a digit sequence but not a valid 10-digit SL number
 
       const { data: result, usage } = await this._processTurn(prompt, history, {
         studentContext,
@@ -558,12 +400,41 @@ Return STRICT JSON ONLY:
       const finalName = result.extracted_data?.name || studentContext.name;
       const finalGrade = result.extracted_data?.grade || studentContext.grade;
       const finalSchool = result.extracted_data?.school || studentContext.school;
-      const finalPhone = result.extracted_data?.phone || studentContext.phone;
-      const finalMonth = result.extracted_data?.month || studentContext.pending_month; // Fix: use pending_month persisted in DB
-      const finalAddress = result.extracted_data?.address || studentContext.address;   // Fix: address now returned from DB
+      const finalMonth = result.extracted_data?.month || studentContext.pending_month;
+      const finalAddress = result.extracted_data?.address || studentContext.address;
+
+      // PERMANENT PHONE FIX: Validate phone programmatically — never trust the AI's extracted value.
+      // Must be exactly 10 digits starting with 0. If the AI extracted an 11-digit number or
+      // anything invalid, we force it to null so registration cannot proceed with a bad number.
+      const rawPhone = result.extracted_data?.phone || studentContext.phone || '';
+      const validPhoneTest = rawPhone.replace(/\s+/g, '').match(/^(0\d{9})$/);
+      const finalPhone = validPhoneTest ? validPhoneTest[1] : null;
 
       const hasAnyDetail = !!(finalName || finalGrade || finalSchool || finalPhone || finalMonth || finalAddress);
-      const isCollecting = studentContext.status === 'lead' || studentContext.conversation_state === 'COLLECTING_DETAILS' || result.intent === 'ADMISSION';
+
+      // Check if the previous bot message was asking for registration details.
+      // This catches cases where the AI misclassifies intent as 'OTHER' (profile update)
+      // when the student is actually responding to a registration prompt.
+      const lastBotMsg = history.filter(h => h.direction === 'outgoing').pop();
+      const wasCollectingDetails = !!(lastBotMsg && (
+        lastBotMsg.content.includes('register') ||
+        lastBotMsg.content.includes('විස්තර') ||
+        lastBotMsg.content.includes('Name, Grade') ||
+        lastBotMsg.content.includes('ඉතිරි')
+      ));
+
+      const isCollecting = studentContext.status === 'lead' ||
+                           studentContext.conversation_state === 'COLLECTING_DETAILS' ||
+                           result.intent === 'ADMISSION' ||
+                           wasCollectingDetails;
+
+      if (!hasAnyDetail && isCollecting) {
+        // Student indicated intent to join but hasn't provided any details yet.
+        // Force the exact canonical prompt that lists all 6 required fields.
+        result.action = 'RESPOND';
+        result.new_state = 'COLLECTING_DETAILS';
+        result.reply = 'හරි 😊 register වෙන්න ඔයාගේ විස්තර ටික එවන්න: Name, Grade, School, Phone, Month සහ Address.';
+      }
 
       if (hasAnyDetail && isCollecting) {
         const missing = [];
@@ -579,47 +450,24 @@ Return STRICT JSON ONLY:
           result.action = 'RESPOND';
           result.new_state = 'COLLECTING_DETAILS';
           result.missing_fields = missing;
-          if (!result.extracted_data) result.extracted_data = {};
-          result.extracted_data.name = finalName || '';
-          result.extracted_data.grade = finalGrade || '';
-          result.extracted_data.school = finalSchool || '';
-          result.extracted_data.phone = finalPhone || '';
-          result.extracted_data.month = finalMonth || '';
-          result.extracted_data.address = finalAddress || '';
+          result.extracted_data = { ...result.extracted_data, name: finalName || '', grade: finalGrade || '', school: finalSchool || '', phone: finalPhone || '', month: finalMonth || '', address: finalAddress || '' };
           
-          const missingList = missing.join(', ');
-          result.reply = `හරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: ${missingList}`;
+          // IMPROVED: If phone is the only missing field and the user sent a digit sequence
+          // (meaning they DID try to give a number but it's the wrong format/length),
+          // tell them WHY it failed instead of just saying "Phone" is missing.
+          if (missing.length === 1 && missing[0] === 'Phone' && hasInvalidPhone) {
+            const badNumber = anyNumberMatch[1];
+            result.reply = `ඔයාගේ phone number එක වැරදියි වගේ 😊 (Exactly 10 digits තියෙන්න ඕනේ. Example: 0771234567)`;
+          } else {
+            const missingList = missing.join(', ');
+            result.reply = `හරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: ${missingList}`;
+          }
         } else {
           // Point 2: If all 6 details are present, check the class count
           const gradeClean = finalGrade.toString().replace(/\D/g, '');
           const matchedClasses = (tutorContext.classes || []).filter(c => c.grade.toString().replace(/\D/g, '') === gradeClean);
           
-          // Helper: generate dynamic bank receipt message
-          const generateReceipt = (fee, classNameOverride = '') => {
-            const classLine = classNameOverride ? `🎓 Class: ${classNameOverride} | Fee: Rs. ${fee}` : `🎓 Grade ${finalGrade} සඳහා මාසික class fee එක Rs. ${fee}`;
-            return `හරි 😊 ${finalName}, ඔයාව successfully register කරගත්තා!
- 
-${classLine}
- 
-Bank Details:
-Bank: ${tutorContext.settings?.bank_name || 'Bank of Ceylon (BOC)'}
-Account Number: ${tutorContext.settings?.bank_account || ''}
-Account Holder: ${tutorContext.settings?.bank_account_holder || ''}
-Branch: ${tutorContext.settings?.bank_branch || ''}
- 
-Payment Rules:
-⭕ Class fee payment receipt එකේ ${finalName}, ${finalPhone}, ${finalMonth}, ${finalGrade} කියන details pen එකෙන් ලියලා එවීම අනිවාර්යයි.
-එසේ නොමැති slips accept කරන්නේ නැහැ.
- 
-🪯❌ Online Payment කරනවා නම්, payment කරන වෙලාවේ Description / Remark වලට class එකට සම්බන්ධ වෙන WhatsApp Number එක දාන්න.
-එසේ නොමැති payments accept කරන්නේ නැහැ.
- 
-📝❌ Tippex කරපු, කුරුටු ගාපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ.
- 
-📍🖊️ Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
- 
-${receiptInstruction}`;
-          };
+          const receiptData = { finalName, finalPhone, finalMonth, finalGrade };
           
           if (matchedClasses.length === 1) {
             // ONLY ONE CLASS available: Instantly register them (Never ask them to choose!)
@@ -627,16 +475,8 @@ ${receiptInstruction}`;
             result.action = 'REGISTER_STUDENT';
             result.new_state = 'REGISTERED';
             result.missing_fields = [];
-            if (!result.extracted_data) result.extracted_data = {};
-            result.extracted_data.class_ids = [singleClass.id];
-            result.extracted_data.name = finalName;
-            result.extracted_data.grade = finalGrade;
-            result.extracted_data.school = finalSchool;
-            result.extracted_data.phone = finalPhone;
-            result.extracted_data.month = finalMonth;
-            result.extracted_data.address = finalAddress;
-            
-            result.reply = generateReceipt(singleClass.fee || 1500);
+            result.extracted_data = { ...result.extracted_data, class_ids: [singleClass.id], name: finalName, grade: finalGrade, school: finalSchool, phone: finalPhone, month: finalMonth, address: finalAddress };
+            result.reply = this._generateReceipt(receiptData, tutorContext, receiptInstruction, singleClass.fee || 1500);
           } else if (matchedClasses.length > 1) {
             // MULTIPLE CLASSES available: Ask them which one they want to join
             const alreadySelected = result.extracted_data?.class_ids || [];
@@ -645,19 +485,10 @@ ${receiptInstruction}`;
               result.new_state = 'COLLECTING_DETAILS';
               result.missing_fields = [];
               if (!result.extracted_data) result.extracted_data = {};
-              result.extracted_data.name = finalName;
-              result.extracted_data.grade = finalGrade;
-              result.extracted_data.school = finalSchool;
-              result.extracted_data.phone = finalPhone;
-              result.extracted_data.month = finalMonth;
-              result.extracted_data.address = finalAddress;
+              result.extracted_data = { ...result.extracted_data, name: finalName, grade: finalGrade, school: finalSchool, phone: finalPhone, month: finalMonth, address: finalAddress };
 
               const classListLines = matchedClasses.map(c => `• ${c.name}`).join('\n');
-              result.reply = `Thank you ${finalName} 😊
-ඔයාගේ details check කරා. Grade ${finalGrade} සඳහා පහත classes available:
-${classListLines}
-ඔයා join වෙන්න කැමති classes මොනවද?
-(Classes කිහිපයකට වුනත් join වෙන්න පුළුවන් 😊)`;
+              result.reply = `Thank you ${finalName} 😊\nඔයාගේ details check කරා. Grade ${finalGrade} සඳහා පහත classes available:\n${classListLines}\nඔයා join වෙන්න කැමති classes මොනවද?\n(Classes කිහිපයකට වුනත් join වෙන්න පුළුවන් 😊)`;
             } else {
               // They selected classes! Generate the final receipt using the total fee.
               const selectedClasses = matchedClasses.filter(c => alreadySelected.includes(c.id));
@@ -667,7 +498,7 @@ ${classListLines}
               result.action = 'REGISTER_STUDENT';
               result.new_state = 'REGISTERED';
               result.missing_fields = [];
-              result.reply = generateReceipt(totalFee, names);
+              result.reply = this._generateReceipt(receiptData, tutorContext, receiptInstruction, totalFee, names);
             }
           }
         }
@@ -708,6 +539,33 @@ ${classListLines}
       .replace(/කියපන්/g, 'කියන්න')
       .replace(/ගෙනාපන්/g, 'ගෙනෙන්න')
       .replace(/යාපන්/g, 'යන්න');
+  }
+
+  _generateReceipt(data, tutorContext, receiptInstruction, fee, classNameOverride = '') {
+    const { finalName, finalPhone, finalMonth, finalGrade } = data;
+    const classLine = classNameOverride ? `🎓 Class: ${classNameOverride} | Fee: Rs. ${fee}` : `🎓 Grade ${finalGrade} සඳහා මාසික class fee එක Rs. ${fee}`;
+    return `හරි 😊 ${finalName}, ඔයාව successfully register කරගත්තා!
+ 
+${classLine}
+ 
+Bank Details:
+Bank: ${tutorContext.settings?.bank_name || 'Bank of Ceylon (BOC)'}
+Account Number: ${tutorContext.settings?.bank_account || ''}
+Account Holder: ${tutorContext.settings?.bank_account_holder || ''}
+Branch: ${tutorContext.settings?.bank_branch || ''}
+ 
+Payment Rules:
+⭕ Class fee payment receipt එකේ ${finalName}, ${finalPhone}, ${finalMonth}, ${finalGrade} කියන details pen එකෙන් ලියලා එවීම අනිවාර්යයි.
+එසේ නොමැති slips accept කරන්නේ නැහැ.
+ 
+🪯❌ Online Payment කරනවා නම්, payment කරන වෙලාවේ Description / Remark වලට class එකට සම්බන්ධ වෙන WhatsApp Number එක දාන්න.
+එසේ නොමැති payments accept කරන්නේ නැහැ.
+ 
+📝❌ Tippex කරපු, කුරුටු ගාපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ.
+ 
+📍🖊️ Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
+ 
+${receiptInstruction}`;
   }
 
   async _updateStudentState(studentId, result) {
