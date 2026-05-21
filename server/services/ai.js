@@ -268,9 +268,6 @@ Return STRICT JSON ONLY:
           console.error('[AI] Lead creation failed:', e.message);
         }
       }
-
-      // OPTIMIZATION: Generate embedding ONCE for the entire message turn
-      const embedding = await this.getEmbedding(prompt);
       const lowPrompt = prompt.toLowerCase().trim();
       const SCHEDULE_DIRECT = ['schedule','timetable','time table','පන්ති කාලසටහන','කාලසටහන'];
       const SCHEDULE_TIME = ['time','kawadada','keeyatada','keeyatda','thiyenne','thiyed','thiyen','thiyenawa','thiyenawada','welawa','welawada','dawasa','end','start','පන්ති','කවදද','වේලාව','වේලාව','කීයද','කීයටද'];
@@ -346,6 +343,7 @@ Return STRICT JSON ONLY:
       // 1. Context Retrieval (RAG)
       // High-performance retrieval: Fetch 2-3 most similar snippets for each category.
       // Higher thresholds (0.45-0.5) ensure only relevant data enters the prompt, keeping it fast.
+      const embedding = await this.getEmbedding(prompt);
       const [faq, style, sop, detectedIntent] = await Promise.all([
         retrievalService.searchFAQs(embedding, tutorId),
         retrievalService.searchStyleExamples(embedding, tutorId),
