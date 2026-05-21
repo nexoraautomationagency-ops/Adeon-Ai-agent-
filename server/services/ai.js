@@ -273,7 +273,7 @@ Return STRICT JSON ONLY:
       const embedding = await this.getEmbedding(prompt);
       const lowPrompt = prompt.toLowerCase().trim();
       const SCHEDULE_DIRECT = ['schedule','timetable','time table','පන්ති කාලසටහන','කාලසටහන'];
-      const SCHEDULE_TIME = ['time','kawadada','keeyatada','keeyatda','thiyenne','thiyed','dawasa','end','start','පන්ති','කවදද','වේලාව','වේලාව','කීයද','කීයටද'];
+      const SCHEDULE_TIME = ['time','kawadada','keeyatada','keeyatda','thiyenne','thiyed','thiyen','thiyenawa','thiyenawada','welawa','welawada','dawasa','end','start','පන්ති','කවදද','වේලාව','වේලාව','කීයද','කීයටද'];
       const SCHEDULE_CLASS = ['class','grade','theory','revision'];
       const isScheduleQuery = SCHEDULE_DIRECT.some(k => lowPrompt.includes(k)) ||
         (SCHEDULE_TIME.some(k => lowPrompt.includes(k)) && (
