@@ -239,7 +239,7 @@ class WhatsAppService extends EventEmitter {
             }
           }
         }
-        const delay = isLikelyAdmin ? 0 : 1000;
+        const delay = isLikelyAdmin ? 0 : 2500;
 
         setTimeout(async () => {
           try {

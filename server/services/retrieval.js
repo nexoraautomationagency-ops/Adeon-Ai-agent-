@@ -169,17 +169,26 @@ class RetrievalService {
       const hasPendingPayment = recentPayments.some(p => p.status === 'unpaid' || p.status === 'pending');
       const payStatus = recentPayments.map(p => `${p.month}: ${p.status}`).join(', ');
 
+      // Fix 3: 48-Hour Context Trap Timeout
+      let activeState = student.conversation_state || 'NEW_LEAD';
+      if (activeState === 'COLLECTING_DETAILS' || student.status === 'lead') {
+          const lastUpdated = new Date(student.updated_at || Date.now()).getTime();
+          if (Date.now() - lastUpdated > 48 * 60 * 60 * 1000) {
+              activeState = 'NEW_LEAD'; // Reset the lock so the AI can answer normal questions again
+          }
+      }
+
       return {
         id: student.id,
         name: student.name || null,
         grade: student.grade || null,
         school: student.school || null,
         phone: student.phone || null,
-        address: student.address || null,           // Fix: expose so address is not re-asked
-        pending_month: student.pending_month || null, // Fix: expose so month is not re-asked
+        address: student.address || null,           
+        pending_month: student.pending_month || null, 
         notes: student.notes || '',
         hasPendingPayment,
-        state: student.conversation_state || 'NEW_LEAD',
+        state: activeState,
         score: student.lead_score || 'WARM',
         missingFields: student.missing_fields || [],
         profile: `Name: ${student.name}, Grade: ${student.grade}, Status: ${student.status}, Notes: ${student.notes || 'None'}, History: ${payStatus || 'None'}`
