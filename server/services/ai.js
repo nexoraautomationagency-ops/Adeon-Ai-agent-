@@ -107,7 +107,8 @@ class AIService {
       faq,
       style,
       sop,
-      intentExamples
+      intentExamples,
+      preVerifiedPhone
     } = context;
 
     const missingFields = this._getMissingFields(studentContext);
@@ -133,23 +134,6 @@ TONE & STYLE RULES
 - Do NOT repeat identical sentence structures. Vary greetings, confirmations, questions.
 - Replies should feel typed by a real person — slightly casual, not perfect.
 - Never invent info. If unsure: "office එකෙන් confirm කරලා දැනුම් දෙන්නම්"
-- **STRICT ACADEMIC RULE**: You are an ADMIN, not a teacher. 
-  1. IF a student says they HAVE a question but hasn't asked it yet: 
-     → REPLY: "Ow 😊 ප්‍රශ්නය එවන්න. මම ඒක Sir ට forward කරන්නම්."
-  2. IF a student ASKS a subject question (e.g. "mokakada", "ai", "explain") OR makes a COMPLAINT: 
-     → REPLY: "මම මේ පණිවිඩය Sir ට යැව්වා 😊" AND YOU MUST set "action": "ESCALATE".
-  3. IF a student says they CANNOT PAY (e.g. "fees gewanna ba", "salli na"):
-     → REPLY: "මම මේ පණිවිඩය Sir ට යැව්වා 😊" AND YOU MUST set "action": "ESCALATE".
-
-- **STRICT POLITENESS RULE — MANDATORY**:
-  - NEVER use commanding or aggressive Sinhala verb forms ending in "-පන්". These are STRICTLY FORBIDDEN:
-    ❌ "දීපන්" → ✅ "දෙන්න" (give)
-    ❌ "කරාපන්" → ✅ "කරන්න" (do)
-    ❌ "එවාපන්" → ✅ "එවන්න" (send)
-    ❌ "කියාපන්" → ✅ "කියන්න" (say)
-  - The "-පන්" suffix is a commanding, rude tone. ALWAYS use the polite "-න්න" suffix instead.
-  - Always phrase requests nicely with "😊". Example: "ඔයාගේ school name සහ address එක එවන්න 😊"
-  - Treat students like valued guests, not subordinates.
 
 ==================================================
 REGISTRATION WORKFLOW (SOP)
@@ -195,52 +179,32 @@ REGISTRATION WORKFLOW (SOP)
       
     - **PROFILE INQUIRY RULE**:
       - IF the student specifically asks for their OWN profile or their OWN details (e.g., "mage details", "my profile", "mage vistara"), you MUST reply by listing the details found in the KNOWN STUDENT DATA section. 
-      - Format: "Ow 😊 [Name], ඔයාගේ details: \nName: [Name]\nGrade: [Grade]\nSchool: [School]\nPhone: [Phone]"
-    
+      - Format: "Ow 😊 [Name], ඔයාගේ details: \nName: [Name]\nGrade: [Grade]\nSchool: [School]\nPhone: [Phone]\nAddress: [Address]"
+
+    - **PROFILE UPDATE RULE**:
+      - IF an active student asks to change or update a specific detail (e.g., "my phone changed", "update my address", "I moved to a new school", "mage phone number change una", "address update karanna"), you MUST:
+        1. Extract ONLY the new value into the correct "extracted_data" field.
+           (new phone number → extracted_data.phone | new school → extracted_data.school | new address → extracted_data.address)
+        2. Set "action": "RESPOND".
+        3. Reply EXACTLY: "හරි 😊 ඔයාගේ [field name] update කරා."
+        4. DO NOT ask for other missing fields. DO NOT trigger the registration flow.
+      - IF the student tries to change their Name or Grade, reply EXACTLY:
+        "Name/Grade change කරන්න Sir ට directly contact කරන්න 😊" — do NOT extract name or grade.
+
     - **MASTER CONSOLIDATION RULE**:
-      - Once ALL 6 fields are valid (Name, Grade, School, Phone, Address, Month) AND the class_ids are extracted, you MUST send ONE single consolidated message immediately.
-      - You MUST set the "action" field to "REGISTER_STUDENT".
-      - EXACT FORMAT:
-        "හරි 😊 [Student Name], ඔයාව Grade [Grade] එකට successfully register කරගත්තා!
-        
-        🎓 [Grade] Grade සඳහා මාසික class fee එක Rs. [Total Class Fee]
-        
-        Bank Details:
-        Bank: Bank of Ceylon (BOC)
-        Account Number: 1234567890
-        Account Holder: adeon class
-        Branch: Colombo
-        
-        Payment Rules:
-        ⭕ Class fee payment receipt එකේ [Student Name], [Phone Number], [Month], [Grade] කියන details pen එකෙන් ලියලා එවීම අනිවාර්යයි.
-        එසේ නොමැති slips accept කරන්නේ නැහැ.
-        
-        🪯❌ Online Payment කරනවා නම්, payment කරන වෙලාවේ Description / Remark වලට class එකට සම්බන්ධ වෙන WhatsApp Number එක දාන්න.
-        එසේ නොමැති payments accept කරන්නේ නැහැ.
-        
-        📝❌ Tippex කරපු, කුරුටු ගාපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ.
-        
-        📍🖊️ Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
-        
-        ${finalPaymentLine}"
-      - For [Total Class Fee], you MUST mathematically calculate the total sum of the fees for ALL classes the student has selected from the CLASSES list. (For example, if they selected a Rs.1500 class and a Rs.1000 class, write Rs. 2500).
+      - Once ALL 6 fields are valid (Name, Grade, School, Phone, Address, Month) AND the class_ids are extracted, you MUST set the "action" field to "REGISTER_STUDENT".
+      - Reply EXACTLY: "Ok 😊" (The system will automatically generate the full receipt and bank details).
       - DO NOT ask for confirmation. DO NOT wait for another message.
 
 
 ==================================================
-BANK DETAILS & PAYMENT RULES
+DASHBOARD BANK DETAILS
 ==================================================
+If a student specifically asks for the bank account details, provide these EXACT details:
 Bank: ${tutorContext.settings?.bank_name || 'Bank of Ceylon'}
 Account: ${tutorContext.settings?.bank_account || ''}
 Holder: ${tutorContext.settings?.bank_account_holder || ''}
 Branch: ${tutorContext.settings?.bank_branch || ''}
-Fee: Rs. ${tutorContext.settings?.basic_fee || '1500'}.00
-
-RULES:
-- Class fee payment receipt එකේ Name, Phone, Paid Month, Grade pen එකෙන් ලියලා එවන්න.
-- Online Payment නම්, Remark එකට WhatsApp Number එක දාන්න.
-- Tippex කරපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ.
-- Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
 
 ==================================================
 INSTITUTE DATA
@@ -264,7 +228,20 @@ ${intentExamples.map(e => `Student: "${e.student_message}"\nAdmin: "${e.ideal_re
 ==================================================
 KNOWN STUDENT DATA
 ==================================================
-Name: ${studentContext.name || 'Unknown'} | Grade: ${studentContext.grade || 'Unknown'} | School: ${studentContext.school || 'Unknown'} | Phone: ${studentContext.phone || 'Unknown'}
+Name: ${studentContext.name || 'Unknown'} | Grade: ${studentContext.grade || 'Unknown'} | School: ${studentContext.school || 'Unknown'} | Phone: ${studentContext.phone || 'Unknown'} | Month: ${studentContext.pending_month || 'Unknown'} | Address: ${studentContext.address || 'Unknown'}
+Pre-verified Phone (from this message): ${preVerifiedPhone ? `${preVerifiedPhone} — ACCEPT THIS as the valid phone number without question.` : 'NONE — validate strictly: must be exactly 10 digits starting with 0 (e.g. 0771234567). If invalid, ask again.'}
+
+==================================================
+JSON EXTRACTION EXAMPLES (Singlish)
+==================================================
+Student: "mage num eka 0771234567"
+Output: {"intent": "OTHER", "action": "RESPOND", "extracted_data": {"phone": "0771234567"}, "reply": "හරි 😊 ඔයාගේ phone update කරා."}
+
+Student: "school eka Richmond college"
+Output: {"intent": "OTHER", "action": "RESPOND", "extracted_data": {"school": "Richmond college"}, "reply": "හරි 😊 ඔයාගේ school update කරා."}
+
+Student: "mama grade 10"
+Output: {"intent": "ADMISSION", "action": "RESPOND", "extracted_data": {"grade": "10"}, "reply": "හරි 😊 ඔයාගේ Grade එක update කරා."}
 
 ==================================================
 OUTPUT FORMAT
@@ -462,7 +439,7 @@ Return STRICT JSON ONLY:
         }
       }
 
-      let isDetailRequest = (lowPrompt.includes('detail') || lowPrompt.includes('fees') || lowPrompt.includes('keeyada') || lowPrompt.includes('denna') || (lowPrompt.includes('mata') && lowPrompt.includes('ona')));
+      let isDetailRequest = (lowPrompt.includes('detail') || lowPrompt.includes('fees') || lowPrompt.includes('keeyada') || (lowPrompt.includes('mata') && lowPrompt.includes('ona')));
       
       // EXCEPTION: If they are asking for their OWN profile/details, don't short-circuit
       if (lowPrompt.includes('mage detail') || lowPrompt.includes('my detail') || lowPrompt.includes('profile') || lowPrompt.includes('mage vistara') || lowPrompt.includes('my profile')) {
@@ -514,10 +491,6 @@ Return STRICT JSON ONLY:
           let master;
           if (requestedGrade) {
             master = await dbGet("SELECT content FROM knowledge_base WHERE category = 'FAQ' AND content ILIKE ? AND tutor_id = ? LIMIT 1", [`%grade ${requestedGrade}%`, tutorId]);
-          }
-          
-          if (!master) {
-            master = await dbGet("SELECT content FROM knowledge_base WHERE category = 'STYLE' AND tutor_id = ? LIMIT 1", [tutorId]);
           }
 
           if (master) {
@@ -586,8 +559,8 @@ Return STRICT JSON ONLY:
       const finalGrade = result.extracted_data?.grade || studentContext.grade;
       const finalSchool = result.extracted_data?.school || studentContext.school;
       const finalPhone = result.extracted_data?.phone || studentContext.phone;
-      const finalMonth = result.extracted_data?.month || studentContext.month;
-      const finalAddress = result.extracted_data?.address || studentContext.address;
+      const finalMonth = result.extracted_data?.month || studentContext.pending_month; // Fix: use pending_month persisted in DB
+      const finalAddress = result.extracted_data?.address || studentContext.address;   // Fix: address now returned from DB
 
       const hasAnyDetail = !!(finalName || finalGrade || finalSchool || finalPhone || finalMonth || finalAddress);
       const isCollecting = studentContext.status === 'lead' || studentContext.conversation_state === 'COLLECTING_DETAILS' || result.intent === 'ADMISSION';
@@ -621,6 +594,33 @@ Return STRICT JSON ONLY:
           const gradeClean = finalGrade.toString().replace(/\D/g, '');
           const matchedClasses = (tutorContext.classes || []).filter(c => c.grade.toString().replace(/\D/g, '') === gradeClean);
           
+          // Helper: generate dynamic bank receipt message
+          const generateReceipt = (fee, classNameOverride = '') => {
+            const classLine = classNameOverride ? `🎓 Class: ${classNameOverride} | Fee: Rs. ${fee}` : `🎓 Grade ${finalGrade} සඳහා මාසික class fee එක Rs. ${fee}`;
+            return `හරි 😊 ${finalName}, ඔයාව successfully register කරගත්තා!
+ 
+${classLine}
+ 
+Bank Details:
+Bank: ${tutorContext.settings?.bank_name || 'Bank of Ceylon (BOC)'}
+Account Number: ${tutorContext.settings?.bank_account || ''}
+Account Holder: ${tutorContext.settings?.bank_account_holder || ''}
+Branch: ${tutorContext.settings?.bank_branch || ''}
+ 
+Payment Rules:
+⭕ Class fee payment receipt එකේ ${finalName}, ${finalPhone}, ${finalMonth}, ${finalGrade} කියන details pen එකෙන් ලියලා එවීම අනිවාර්යයි.
+එසේ නොමැති slips accept කරන්නේ නැහැ.
+ 
+🪯❌ Online Payment කරනවා නම්, payment කරන වෙලාවේ Description / Remark වලට class එකට සම්බන්ධ වෙන WhatsApp Number එක දාන්න.
+එසේ නොමැති payments accept කරන්නේ නැහැ.
+ 
+📝❌ Tippex කරපු, කුරුටු ගාපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ.
+ 
+📍🖊️ Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
+ 
+${receiptInstruction}`;
+          };
+          
           if (matchedClasses.length === 1) {
             // ONLY ONE CLASS available: Instantly register them (Never ask them to choose!)
             const singleClass = matchedClasses[0];
@@ -636,28 +636,7 @@ Return STRICT JSON ONLY:
             result.extracted_data.month = finalMonth;
             result.extracted_data.address = finalAddress;
             
-            result.reply = `හරි 😊 ${finalName}, ඔයාව Grade ${finalGrade} එකට successfully register කරගත්තා!
- 
-🎓 Grade ${finalGrade} සඳහා මාසික class fee එක Rs. ${singleClass.fee || 1500}
- 
-Bank Details:
-Bank: ${tutorContext.settings?.bank_name || 'Bank of Ceylon (BOC)'}
-Account Number: ${tutorContext.settings?.bank_account || ''}
-Account Holder: ${tutorContext.settings?.bank_account_holder || ''}
-Branch: ${tutorContext.settings?.bank_branch || ''}
- 
-Payment Rules:
-⭕ Class fee payment receipt එකේ ${finalName}, ${finalPhone}, ${finalMonth}, ${finalGrade} කියන details pen එකෙන් ලියලා එවීම අනිවාර්යයි.
-එසේ නොමැති slips accept කරන්නේ නැහැ.
- 
-🪯❌ Online Payment කරනවා නම්, payment කරන වෙලාවේ Description / Remark වලට class එකට සම්බන්ධ වෙන WhatsApp Number එක දาන්න.
-එසේ නොමැති payments accept කරන්නේ නැහැ.
- 
-📝❌ Tippex කරපු, කුරුටු ගාපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ.
- 
-📍🖊️ Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
- 
-${receiptInstruction}`;
+            result.reply = generateReceipt(singleClass.fee || 1500);
           } else if (matchedClasses.length > 1) {
             // MULTIPLE CLASSES available: Ask them which one they want to join
             const alreadySelected = result.extracted_data?.class_ids || [];
@@ -679,6 +658,16 @@ ${receiptInstruction}`;
 ${classListLines}
 ඔයා join වෙන්න කැමති classes මොනවද?
 (Classes කිහිපයකට වුනත් join වෙන්න පුළුවන් 😊)`;
+            } else {
+              // They selected classes! Generate the final receipt using the total fee.
+              const selectedClasses = matchedClasses.filter(c => alreadySelected.includes(c.id));
+              const totalFee = selectedClasses.reduce((sum, c) => sum + (parseFloat(c.fee) || 0), 0) || 1500;
+              const names = selectedClasses.map(c => c.name).join(' සහ ');
+              
+              result.action = 'REGISTER_STUDENT';
+              result.new_state = 'REGISTERED';
+              result.missing_fields = [];
+              result.reply = generateReceipt(totalFee, names);
             }
           }
         }
@@ -732,6 +721,7 @@ ${classListLines}
       const school = data.school || '';
       const address = data.address || '';
       const phone = data.phone || data.contact || '';
+      const pendingMonth = data.month || ''; // Fix: persist month across conversation turns
 
       // PROTECTION: If student is already registered (status='active'), 
       // don't allow name/grade overwrites to prevent profile corruption.
@@ -769,6 +759,7 @@ ${classListLines}
             address = COALESCE(NULLIF(?::TEXT, ''), address),
             phone = COALESCE(NULLIF(?::TEXT, ''), phone),
             normalized_phone = COALESCE(NULLIF(?::TEXT, ''), normalized_phone),
+            pending_month = COALESCE(NULLIF(?::TEXT, ''), pending_month),
             updated_at = CURRENT_TIMESTAMP
           WHERE id = ?
         `, [
@@ -778,6 +769,7 @@ ${classListLines}
           address || '', 
           phone || '', 
           normalizedPhone || '',
+          pendingMonth || '',
           studentId
         ]);
       }

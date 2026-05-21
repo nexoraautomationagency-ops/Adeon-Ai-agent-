@@ -230,7 +230,15 @@ class WhatsAppService extends EventEmitter {
 
       if (!this.pendingMessages.has(msg.from)) {
         this.pendingMessages.set(msg.from, { body: msg.body, timestamp: Date.now(), msgObj: msg });
-        const isLikelyAdmin = Array.from(this._adminCache || []).some(a => a === msg.from || a === (msg.author || '').split('@')[0]);
+        let isLikelyAdmin = false;
+        if (this._adminCache) {
+          for (const adminSet of this._adminCache.values()) {
+            if (adminSet.has(msg.from) || adminSet.has((msg.author || '').split('@')[0])) {
+              isLikelyAdmin = true;
+              break;
+            }
+          }
+        }
         const delay = isLikelyAdmin ? 0 : 1000;
 
         setTimeout(async () => {
@@ -693,6 +701,9 @@ Show this help message.`;
             finalPaymentAmount = parseFloat(settings?.basic_fee) || 1500;
             if (gradeNum >= 6 && gradeNum <= 9) finalPaymentAmount = 1200;
             else if (gradeNum >= 10 && gradeNum <= 11) finalPaymentAmount = 1500;
+            // Fix Bug 3: Sync monthly_fee on student record so dashboard never shows Rs.0
+            await dbRun('UPDATE students SET monthly_fee = ? WHERE id = ?', [finalPaymentAmount, sid]);
+            console.log(`[Enrollment] Fee fallback applied for student ${sid}: Rs.${finalPaymentAmount}`);
         }
 
         const existingPayment = await dbGet('SELECT id, amount FROM payments WHERE student_id = ? AND month = ? AND year = ?', [sid, month, year]);

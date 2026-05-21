@@ -124,7 +124,7 @@ class RetrievalService {
    * Layer 2: FAQ RAG
    */
   async searchFAQs(queryOrEmbedding, tutorId = null) {
-    return this.vectorSearch(queryOrEmbedding, 'FAQ', tutorId, 0.35, 3);
+    return this.vectorSearch(queryOrEmbedding, 'FAQ', tutorId, 0.45, 3);
   }
 
   /**
@@ -138,7 +138,7 @@ class RetrievalService {
    * Layer 4: SOP Rules RAG
    */
   async searchSOPRules(queryOrEmbedding, tutorId = null) {
-    return this.vectorSearch(queryOrEmbedding, 'SOP', tutorId, 0.3, 2);
+    return this.vectorSearch(queryOrEmbedding, 'SOP', tutorId, 0.45, 2);
   }
 
   /**
@@ -175,6 +175,8 @@ class RetrievalService {
         grade: student.grade || null,
         school: student.school || null,
         phone: student.phone || null,
+        address: student.address || null,           // Fix: expose so address is not re-asked
+        pending_month: student.pending_month || null, // Fix: expose so month is not re-asked
         notes: student.notes || '',
         hasPendingPayment,
         state: student.conversation_state || 'NEW_LEAD',

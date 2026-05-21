@@ -372,6 +372,8 @@ async function migrate() {
     { table: 'classes', column: 'fee', type: 'DOUBLE PRECISION DEFAULT 0' },
     { table: 'students', column: 'normalized_phone', type: 'TEXT' },
     { table: 'knowledge_base', column: 'tutor_id', type: 'INTEGER REFERENCES tutors(id) ON DELETE CASCADE' },
+    // Fix: persist registration month across multi-turn conversations
+    { table: 'students', column: 'pending_month', type: 'TEXT' },
   ];
 
   for (const m of migrations) {
