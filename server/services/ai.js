@@ -270,18 +270,46 @@ Return STRICT JSON ONLY:
       }
       const lowPrompt = prompt.toLowerCase().trim();
 
-      // PRE-EXTRACT GRADE: If the message mentions "grade X" or "X grade", save it immediately.
-      // This catches cases where the student says "grade 11 class join" in the first message
-      // but the bot asks for ALL 6 fields, and grade is then missing from the next message.
-      if (studentContext.id && !studentContext.grade) {
-        const gradeHint = prompt.match(/(?:grade\s*)(\d+)|(\d+)(?:\s*grade)/i);
-        if (gradeHint) {
-          const detectedGrade = gradeHint[1] || gradeHint[2];
-          try {
-            await dbRun('UPDATE students SET grade = ? WHERE id = ?', [detectedGrade, studentContext.id]);
-            studentContext.grade = detectedGrade;
-            console.log(`[AI] Pre-extracted grade ${detectedGrade} from prompt and saved.`);
-          } catch (e) { /* silent */ }
+      // PRE-EXTRACT KEY FIELDS: Programmatically capture grade, phone, and month
+      // from the raw message text BEFORE OpenAI processes it. This ensures these
+      // critical fields are never lost even if OpenAI fails to extract them.
+      if (studentContext.id) {
+        // Grade
+        if (!studentContext.grade) {
+          const gradeHint = prompt.match(/(?:grade\s*)(\d+)|(\d+)(?:\s*grade)/i);
+          if (gradeHint) {
+            const detectedGrade = gradeHint[1] || gradeHint[2];
+            try {
+              await dbRun('UPDATE students SET grade = ? WHERE id = ?', [detectedGrade, studentContext.id]);
+              studentContext.grade = detectedGrade;
+              console.log(`[AI] Pre-extracted grade ${detectedGrade} from prompt and saved.`);
+            } catch (e) { /* silent */ }
+          }
+        }
+        // Phone (10-digit SL number starting with 0)
+        if (!studentContext.phone) {
+          const phoneHint = prompt.match(/(?<!\d)(0\d{9})(?!\d)/);
+          if (phoneHint) {
+            try {
+              await dbRun('UPDATE students SET phone = ? WHERE id = ?', [phoneHint[1], studentContext.id]);
+              studentContext.phone = phoneHint[1];
+              console.log(`[AI] Pre-extracted phone ${phoneHint[1]} from prompt and saved.`);
+            } catch (e) { /* silent */ }
+          }
+        }
+        // Month
+        if (!studentContext.pending_month) {
+          const months = ['january','february','march','april','may','june','july','august','september','october','november','december','jan','feb','mar','apr','jun','jul','aug','sep','oct','nov','dec'];
+          const found = months.find(m => lowPrompt.includes(m));
+          if (found) {
+            const fullMonth = found.length <= 3 ? months[months.indexOf(found) - 12] || found : found;
+            const capitalized = fullMonth.charAt(0).toUpperCase() + fullMonth.slice(1);
+            try {
+              await dbRun('UPDATE students SET pending_month = ? WHERE id = ?', [capitalized, studentContext.id]);
+              studentContext.pending_month = capitalized;
+              console.log(`[AI] Pre-extracted month ${capitalized} from prompt and saved.`);
+            } catch (e) { /* silent */ }
+          }
         }
       }
 
