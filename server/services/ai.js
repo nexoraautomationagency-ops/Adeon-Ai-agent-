@@ -298,8 +298,10 @@ Return STRICT JSON ONLY:
           };
         }
       }
+      
 
       const COMPLAINT_WORDS = ['gewanna ba','salli na','amaruy','hadala denna','visadala denna','kiyala denna'];
+
       const isComplaint = COMPLAINT_WORDS.some(k => lowPrompt.includes(k)) ||
         (['complain','aulak','awul'].some(k => lowPrompt.includes(k)) && !['na','ne','naha'].some(k => lowPrompt.includes(k)));
       if (isComplaint) return { text: 'මම මේ පණිවිඩය Sir ට යැව්වා 😊', intent: 'COMPLAIN', command: 'ESCALATE', action: 'ESCALATE', data: {} };
@@ -479,26 +481,28 @@ Return STRICT JSON ONLY:
             result.extracted_data = { ...result.extracted_data, class_ids: [singleClass.id], name: finalName, grade: finalGrade, school: finalSchool, phone: finalPhone, month: finalMonth, address: finalAddress };
             result.reply = this._generateReceipt(receiptData, tutorContext, receiptInstruction, singleClass.fee || 1500);
           } else if (matchedClasses.length > 1) {
-            // MULTIPLE CLASSES available: Ask them which one they want to join
+            // MULTIPLE CLASSES: Let AI handle selection naturally via class_ids extraction.
+            // The INSTITUTE DATA in the system prompt shows [ID: X] for each class.
+            // On the next turn, AI will extract the class_ids from the student's natural reply.
             const alreadySelected = result.extracted_data?.class_ids || [];
             if (alreadySelected.length === 0) {
+              // First time — ask which class naturally, AI will extract choice next turn
               result.action = 'RESPOND';
               result.new_state = 'COLLECTING_DETAILS';
               result.missing_fields = [];
               if (!result.extracted_data) result.extracted_data = {};
               result.extracted_data = { ...result.extracted_data, name: finalName, grade: finalGrade, school: finalSchool, phone: finalPhone, month: finalMonth, address: finalAddress };
-
-              const classListLines = matchedClasses.map(c => `• ${c.name}`).join('\n');
-              result.reply = `Thank you ${finalName} 😊\nඔයාගේ details check කරා. Grade ${finalGrade} සඳහා පහත classes available:\n${classListLines}\nඔයා join වෙන්න කැමති classes මොනවද?\n(Classes කිහිපයකට වුනත් join වෙන්න පුළුවන් 😊)`;
+              const classListLines = matchedClasses.map(c => `• ${c.subject} — ${c.day_of_week} ${c.start_time} - ${c.end_time}`).join('\n');
+              result.reply = `හරි ${finalName} 😊 Grade ${finalGrade} සඳහා classes available:\n\n${classListLines}\n\nඔයා join වෙන්න කැමති class එක කියන්න 😊`;
             } else {
-              // They selected classes! Generate the final receipt using the total fee.
+              // AI extracted the class_ids — generate receipt
               const selectedClasses = matchedClasses.filter(c => alreadySelected.includes(c.id));
               const totalFee = selectedClasses.reduce((sum, c) => sum + (parseFloat(c.fee) || 0), 0) || 1500;
-              const names = selectedClasses.map(c => c.name).join(' සහ ');
-              
+              const names = selectedClasses.map(c => `${c.subject} (${c.day_of_week})`).join(' සහ ');
               result.action = 'REGISTER_STUDENT';
               result.new_state = 'REGISTERED';
               result.missing_fields = [];
+              result.extracted_data = { ...result.extracted_data, class_ids: alreadySelected, name: finalName, grade: finalGrade, school: finalSchool, phone: finalPhone, month: finalMonth, address: finalAddress };
               result.reply = this._generateReceipt(receiptData, tutorContext, receiptInstruction, totalFee, names);
             }
           }
