@@ -131,7 +131,7 @@ INSTITUTE DATA
 CLASSES: ${tutorContext.classLines || 'No class data'}
 FEES: ${tutorContext.feeLines || 'No fee data'}
 
-==================================================
+====================================================
 KNOWLEDGE BASE (FAQ & SOP)
 ==================================================
 - USE THE MASTER_REGISTRATION_FLOW SOP TEMPLATE FOR CONFIRMATIONS.
