@@ -72,6 +72,10 @@ class RetrievalService {
 
       if (!embedding) return 'UNKNOWN';
 
+      // OPT: Skip Supabase RPC call if no INTENT records are seeded yet
+      const { count } = await supabase.from('knowledge_base').select('*', { count: 'exact', head: true }).eq('category', 'INTENT').eq('tutor_id', tutorId || 0);
+      if (!count || count === 0) return 'UNKNOWN';
+
       const { data, error } = await supabase.rpc('match_intents', {
         query_embedding: embedding,
         match_threshold: matchThreshold,
@@ -242,43 +246,20 @@ class RetrievalService {
         }
       }
 
-      // 2. Try local SQLite intent match (Training Conversations from Dashboard)
-      if (examples.length < limit && intent && intent !== 'OTHER' && intent !== 'UNKNOWN') {
-        let localSql = 'SELECT student_message, ideal_reply FROM knowledge_examples WHERE intent = ?';
-        const localParams = [intent];
-        if (tutorId) {
-          localSql += ' AND tutor_id = ?';
-          localParams.push(tutorId);
-        }
-        localSql += ' ORDER BY RANDOM() LIMIT ?';
-        localParams.push(limit - examples.length);
-        
-        const localEx = await dbAll(localSql, localParams);
-        examples = [...examples, ...localEx];
-      }
-
-      // 3. Fallback or Supplement: Keyword search on messages
+      // 2. Keyword fallback on Supabase STYLE if vector search returned fewer than limit
       if (examples.length < limit && query) {
         const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
         if (words.length > 0) {
-          let searchSql = 'SELECT student_message, ideal_reply FROM knowledge_examples WHERE ';
-          const conditions = words.map(() => '(student_message ILIKE ? OR ideal_reply ILIKE ?)').join(' OR ');
-          
-          if (tutorId) {
-             searchSql += `tutor_id = ? AND (${conditions})`;
-          } else {
-             searchSql += conditions;
+          let queryObj = supabase.from('knowledge_base').select('content, metadata').eq('category', 'STYLE');
+          if (tutorId) queryObj = queryObj.eq('tutor_id', tutorId);
+          const { data: extra } = await queryObj.limit(limit - examples.length);
+          if (extra) {
+            const moreExamples = extra.map(ex => ({
+              student_message: ex.metadata?.student_message || 'Example',
+              ideal_reply: ex.metadata?.ideal_reply || ex.content
+            }));
+            examples = [...examples, ...moreExamples];
           }
-          
-          searchSql += ' ORDER BY RANDOM() LIMIT ?';
-          
-          const params = [];
-          if (tutorId) params.push(tutorId);
-          words.forEach(w => { params.push(`%${w}%`); params.push(`%${w}%`); });
-          params.push(limit - examples.length);
-
-          const extra = await dbAll(searchSql, params);
-          examples = [...examples, ...extra];
         }
       }
 

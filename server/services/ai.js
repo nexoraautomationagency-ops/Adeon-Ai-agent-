@@ -234,7 +234,7 @@ Return STRICT JSON ONLY:
       // OPTIMIZATION: Greeting Short-Circuit (Instant response for basic hellos)
       // BUT: If they also mention 'join' or 'class', skip short-circuit and do registration!
       const isRegistrationKeyword = /(join|class|register|admission|එන්න|සම්බන්ධ|පන්ති|regist|add)/i.test(prompt?.toLowerCase());
-      const isBasicGreeting = /^(hi|hello|hey|ayubowan|morning|evening|gm|ge|hi\s+admin|hello\s+admin|halo)[!?. ]*$/i.test(prompt?.trim());
+      const isBasicGreeting = /^(hi|hello|hey|ayubowan|morning|evening|gm|ge|hi\s+admin|hello\s+admin|halo|ආයුබෝවන්|හෙලෝ|හෙල්ලෝ|සුභ\s*උදෑසනක්|good\s*morning|good\s*evening)[!?. ]*$/i.test(prompt?.trim());
 
       if (isBasicGreeting && !isRegistrationKeyword) {
         const tutorName = tutorContext.tutor?.institute_name || 'class';
@@ -271,7 +271,23 @@ Return STRICT JSON ONLY:
         }
       }
       const lowPrompt = (prompt || '').toLowerCase().trim();
+
+      // THIRD-PARTY REGISTRATION SHORT-CIRCUIT
+      // Must fire BEFORE registration flow — catches "add/register my friend/sibling" and redirects
+      const THIRD_PARTY_KEYWORDS = ['yaluwekw', 'yaluwaw', 'yaluwa', 'yaluw', 'wena kenekk', 'aluth kenekk', 'brother', 'sister', 'akka', 'malli', 'nangi', 'aiya', 'දොස්ත', 'යාලුව', 'අයියා', 'නංගි', 'මල්ලි'];
+      const isThirdPartyReg = THIRD_PARTY_KEYWORDS.some(k => lowPrompt.includes(k)) &&
+        /(add|register|join|regist|one|onne|ona)/i.test(lowPrompt);
+      if (isThirdPartyReg) {
+        return {
+          text: 'වෙන කෙනෙක්ව register කරන්න නම්, එයාගේ whatsapp number එකෙන් message එකක් දාන්න කියන්න',
+          intent: 'OTHER',
+          action: 'RESPOND',
+          data: {}
+        };
+      }
+
       const SCHEDULE_DIRECT = ['schedule', 'timetable', 'time table', 'පන්ති කාලසටහන', 'කාලසටහන'];
+
       const SCHEDULE_TIME = ['time', 'kawadada', 'keeyatada', 'keeyatda', 'thiyenne', 'thiyed', 'thiyen', 'thiyenawa', 'thiyenawada', 'welawa', 'welawada', 'dawasa', 'end', 'start', 'පන්ති', 'කවදද', 'වේලාව', 'වේලාව', 'කීයද', 'කීයටද'];
       const SCHEDULE_CLASS = ['class', 'grade', 'theory', 'revision'];
       const isScheduleQuery = SCHEDULE_DIRECT.some(k => lowPrompt.includes(k)) ||
@@ -310,31 +326,39 @@ Return STRICT JSON ONLY:
       if (DELIVERY_WORDS.some(k => lowPrompt.includes(k)) || /\bawa\b/.test(lowPrompt))
         return { text: 'Tute එක ලැබුණා කියලා confirm කරාට thanks. ඔයාට තවත් help එකක් ඕනේ නම් ඕනෙම වෙලාවක message කරන්න 👍', intent: 'CONFIRM_DELIVERY', command: 'CONFIRM_DELIVERY', action: 'CONFIRM_DELIVERY', data: {} };
 
-      let isDetailRequest = (lowPrompt.includes('detail') || lowPrompt.includes('fees') || lowPrompt.includes('keeyada') || (lowPrompt.includes('mata') && lowPrompt.includes('ona')));
+      // EXPANDED: Catch precise info-request patterns for instant short-circuit
+      // IMPORTANT: Keep these specific — broad words like 'bank', 'keeya', 'mokakda' could catch payment/receipt messages
+      const INFO_KEYWORDS = ['detail', 'fees', 'keeyada', 'payment info', 'class info', 'fee ekk', 'fee eka', 'class eka', 'fees eka', 'class details', 'bank details', 'vistar', 'vistara', 'keeyad'];
+      let isDetailRequest = INFO_KEYWORDS.some(k => lowPrompt.includes(k)) || (lowPrompt.includes('mata') && lowPrompt.includes('ona'));
 
       // EXCEPTION: If they are asking for their OWN profile/details, don't short-circuit
       if (lowPrompt.includes('mage detail') || lowPrompt.includes('my detail') || lowPrompt.includes('profile') || lowPrompt.includes('mage vistara') || lowPrompt.includes('my profile')) {
         isDetailRequest = false;
       }
 
-
-      if (isDetailRequest && !prompt.includes('join')) {
-        // DYNAMIC FETCH: Get the Master Template or Grade-specific Fee
+      if (isDetailRequest && !lowPrompt.includes('join')) {
+        // OPT: Use pre-cached tutorContext master template (no extra DB call needed)
         const gradeMatch = prompt.match(/grade\s*(\d+)/i) || prompt.match(/(\d+)\s*grade/i);
         const requestedGrade = gradeMatch ? gradeMatch[1] : null;
 
-        let master;
-        if (requestedGrade) {
-          master = await dbGet("SELECT content FROM knowledge_base WHERE category = 'FAQ' AND content ILIKE ? AND tutor_id = ? LIMIT 1", [`%grade ${requestedGrade}%`, tutorId]);
+        let masterText = null;
+        if (requestedGrade && tutorContext.classes) {
+          // Build a grade-specific fee reply from in-memory class data
+          const matched = tutorContext.classes.filter(c => c.grade.toString() === requestedGrade);
+          if (matched.length > 0) {
+            masterText = matched.map(c => `Grade ${c.grade} ${c.subject}: Rs.${c.fee}/-`).join('\n');
+          }
         }
 
-        if (!master) {
-          master = await dbGet("SELECT content FROM knowledge_base WHERE content ILIKE '%*Class Details*%' AND tutor_id = ? LIMIT 1", [tutorId]);
+        // Fallback to master template from knowledge_base (only 1 DB call, cached by Supabase client)
+        if (!masterText) {
+          const master = await dbGet("SELECT content FROM knowledge_base WHERE content ILIKE '%*Class Details*%' AND tutor_id = ? LIMIT 1", [tutorId]);
+          masterText = master?.content || null;
         }
 
-        if (master) {
+        if (masterText) {
           return {
-            text: master.content,
+            text: masterText,
             intent: 'OTHER',
             action: 'RESPOND',
             data: {}
@@ -346,14 +370,14 @@ Return STRICT JSON ONLY:
       // High-performance retrieval: Fetch 2-3 most similar snippets for each category.
       // Higher thresholds (0.45-0.5) ensure only relevant data enters the prompt, keeping it fast.
       const embedding = await this.getEmbedding(prompt);
-      const [faq, style, sop, detectedIntent] = await Promise.all([
+      // OPT: Get intent first (fast), then run all remaining searches in parallel including examples
+      const detectedIntent = await retrievalService.matchIntent(embedding, tutorId);
+      const [faq, style, sop, intentExamples] = await Promise.all([
         retrievalService.searchFAQs(embedding, tutorId),
         retrievalService.searchStyleExamples(embedding, tutorId),
         retrievalService.searchSOPRules(embedding, tutorId),
-        retrievalService.matchIntent(embedding, tutorId)
+        retrievalService.getIntentExamples(detectedIntent, prompt, 3, embedding, tutorId)
       ]);
-
-      const intentExamples = await retrievalService.getIntentExamples(detectedIntent, prompt, 3, embedding, tutorId);
 
       // RAG Observability — check your server console to verify RAG is working
       console.log(`[RAG] "${prompt.substring(0, 40)}..." → FAQ: ${faq.length} | Style: ${style.length} | SOP: ${sop.length} | Intent: ${detectedIntent}`);
@@ -459,7 +483,7 @@ Return STRICT JSON ONLY:
         // Student indicated intent to join but hasn't provided any details yet.
         result.action = 'RESPOND';
         result.new_state = 'COLLECTING_DETAILS';
-        
+
         const promptTxt = 'හරි 😊 register වෙන්න ඔයාගේ විස්තර ටික එවන්න: Name, Grade, School, Phone, Month සහ Address.';
         // If the AI answered a specific question (not just a generic admission intent), preserve its answer
         if (result.intent !== 'ADMISSION' && result.intent !== 'PROVIDE_DETAILS' && result.reply && result.reply.length > 10) {
@@ -563,7 +587,8 @@ Return STRICT JSON ONLY:
       };
     } catch (err) {
       console.error('[AI ERROR]', err.message);
-      return { text: 'ආයුබෝවන් 😊\nමොනවද ඔයාට දැනගන්න ඕනේ?' };
+      console.error('[AI ERROR] Full stack:', err.stack || err.message);
+      return { text: 'කරුණාකර මොහොතක් රැඳෙන්න 😊 නැවත try කරන්න.' };
     }
   }
 
