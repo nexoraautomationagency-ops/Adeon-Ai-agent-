@@ -114,7 +114,7 @@ REGISTRATION WORKFLOW (SOP)
     - **TUTOR INQUIRY RULE**: If asked for teacher's name, reply EXACTLY: "Sir ගේ නම ${tutorContext.settings?.tutor_name || 'අපේ Sir'} 😊".
     - **CLASS AVAILABILITY INQUIRY RULE**: If asked if there are classes, say "Ow 😊" and list ALL matching classes from INSTITUTE DATA.
     - **PROFILE INQUIRY RULE**: If asked for their OWN profile, reply by listing details from KNOWN STUDENT DATA.
-    - **PROFILE UPDATE RULE**: If an active student updates a detail, extract ONLY the new value into "extracted_data". For Name/Grade changes: reply "Name/Grade change කරන්න Sir ට directly contact කරන්න 😊" and DO NOT extract.
+    - **PROFILE UPDATE RULE**: If an active student updates a detail, extract ONLY the new value into "extracted_data". For Name/Grade/Month changes: reply "Grade හෝ Month එක change කරන්න නම් කරුණාකර Sir ට direct message එකක් දාන්න 😊" and DO NOT extract.
 
 
 ==================================================
@@ -353,7 +353,11 @@ Return STRICT JSON ONLY:
         retrievalService.matchIntent(embedding, tutorId)
       ]);
 
-      const intentExamples = await retrievalService.getIntentExamples(detectedIntent, prompt, 3);
+      const intentExamples = await retrievalService.getIntentExamples(detectedIntent, prompt, 3, embedding, tutorId);
+
+      // RAG Observability — check your server console to verify RAG is working
+      console.log(`[RAG] "${prompt.substring(0, 40)}..." → FAQ: ${faq.length} | Style: ${style.length} | SOP: ${sop.length} | Intent: ${detectedIntent}`);
+      if (faq.length > 0) console.log(`[RAG] Top FAQ (score ${faq[0].similarity?.toFixed(3) || '?'}): "${faq[0].content?.substring(0, 100)}..."`);
 
       // NEW: Calculate dynamic receipt instruction before building prompt
       let receiptInstruction = "";
@@ -447,17 +451,22 @@ Return STRICT JSON ONLY:
         lastBotMsg.content.includes('ඉතිරි')
       ));
 
-      const isCollecting = studentContext.status === 'lead' ||
-        studentContext.state === 'COLLECTING_DETAILS' ||
+      const isCollecting = studentContext.state === 'COLLECTING_DETAILS' ||
         result.intent === 'ADMISSION' ||
         wasCollectingDetails;
 
       if (!hasAnyDetail && isCollecting) {
         // Student indicated intent to join but hasn't provided any details yet.
-        // Force the exact canonical prompt that lists all 6 required fields.
         result.action = 'RESPOND';
         result.new_state = 'COLLECTING_DETAILS';
-        result.reply = 'හරි 😊 register වෙන්න ඔයාගේ විස්තර ටික එවන්න: Name, Grade, School, Phone, Month සහ Address.';
+        
+        const promptTxt = 'හරි 😊 register වෙන්න ඔයාගේ විස්තර ටික එවන්න: Name, Grade, School, Phone, Month සහ Address.';
+        // If the AI answered a specific question (not just a generic admission intent), preserve its answer
+        if (result.intent !== 'ADMISSION' && result.intent !== 'PROVIDE_DETAILS' && result.reply && result.reply.length > 10) {
+          result.reply = result.reply + '\n\n' + promptTxt;
+        } else {
+          result.reply = promptTxt;
+        }
       }
 
       if (hasAnyDetail && isCollecting) {
@@ -476,20 +485,23 @@ Return STRICT JSON ONLY:
           result.missing_fields = missing;
           result.extracted_data = { ...result.extracted_data, name: finalName || '', grade: finalGrade || '', school: finalSchool || '', phone: finalPhone || '', month: finalMonth || '', address: finalAddress || '' };
 
-          // IMPROVED: If the user sent a digit sequence (meaning they DID try to give a number 
-          // but it's the wrong format/length), tell them WHY it failed instead of just saying "Phone" is missing,
-          // even if other fields are missing.
+          let missingPrompt = '';
           if (missing.includes('Phone') && hasInvalidPhone) {
             const otherMissing = missing.filter(m => m !== 'Phone');
             if (otherMissing.length > 0) {
-              const missingList = otherMissing.join(', ');
-              result.reply = `ඔයාගේ phone number එක වැරදියි වගේ 😊 (Exactly 10 digits තියෙන්න ඕනේ).\nහරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: Phone, ${missingList}`;
+              missingPrompt = `ඔයාගේ phone number එක වැරදියි වගේ 😊 (Exactly 10 digits තියෙන්න ඕනේ).\nහරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: Phone, ${otherMissing.join(', ')}`;
             } else {
-              result.reply = `ඔයාගේ phone number එක වැරදියි වගේ 😊 (Exactly 10 digits තියෙන්න ඕනේ. Example: 0771234567)`;
+              missingPrompt = `ඔයාගේ phone number එක වැරදියි වගේ 😊 (Exactly 10 digits තියෙන්න ඕනේ. Example: 0771234567)`;
             }
           } else {
-            const missingList = missing.join(', ');
-            result.reply = `හරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: ${missingList}`;
+            missingPrompt = `හරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: ${missing.join(', ')}`;
+          }
+
+          // Preserve AI's custom answer if they asked a separate question while registering
+          if (result.intent !== 'ADMISSION' && result.intent !== 'PROVIDE_DETAILS' && result.reply && result.reply.length > 10) {
+            result.reply = result.reply + '\n\n' + missingPrompt;
+          } else {
+            result.reply = missingPrompt;
           }
         } else {
           // Point 2: If all 6 details are present, check the class count

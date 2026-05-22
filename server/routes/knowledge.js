@@ -106,9 +106,23 @@ router.post('/facts', async (req, res) => {
  * GET all training examples (Few-Shot)
  */
 router.get('/examples', developerOnly, async (req, res) => {
-
   try {
-    const examples = await dbAll('SELECT * FROM knowledge_examples WHERE tutor_id = ? ORDER BY id DESC', [req.tutor.id]);
+    const { data, error } = await supabase
+      .from('knowledge_base')
+      .select('id, content, metadata')
+      .eq('tutor_id', req.tutor.id)
+      .eq('category', 'STYLE')
+      .order('id', { ascending: false });
+
+    if (error) throw error;
+
+    const examples = (data || []).map(row => ({
+      id: row.id,
+      student_message: row.metadata?.student_message || '',
+      ideal_reply: row.metadata?.ideal_reply || '',
+      intent: row.metadata?.intent || 'GENERAL',
+      created_at: row.created_at
+    }));
 
     res.json({ examples });
   } catch (err) {
@@ -124,11 +138,23 @@ router.post('/teach', developerOnly, async (req, res) => {
   const tutor_id = req.tutor.id;
 
   try {
-    await dbRun(`
-      INSERT INTO knowledge_examples (tutor_id, intent, student_message, ideal_reply)
-      VALUES (?, ?, ?, ?)
-    `, [tutor_id, intent || 'GENERAL', student_message, ideal_reply]);
+    const content = `Student: ${student_message}\nAdmin: ${ideal_reply}`;
+    const embedding = await aiService.getEmbedding(content);
 
+    const { error } = await supabase.from('knowledge_base').insert([{
+      content,
+      tutor_id,
+      category: 'STYLE',
+      embedding,
+      metadata: { 
+        student_message, 
+        ideal_reply, 
+        intent: intent || 'GENERAL',
+        source: 'Dashboard Training'
+      }
+    }]);
+
+    if (error) throw error;
     res.json({ success: true, message: 'AI has learned this example! ✅' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -140,7 +166,14 @@ router.post('/teach', developerOnly, async (req, res) => {
  */
 router.delete('/examples/:id', developerOnly, async (req, res) => {
   try {
-    await dbRun('DELETE FROM knowledge_examples WHERE id = ?', [req.params.id]);
+    const { error } = await supabase
+      .from('knowledge_base')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('tutor_id', req.tutor.id)
+      .eq('category', 'STYLE');
+      
+    if (error) throw error;
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

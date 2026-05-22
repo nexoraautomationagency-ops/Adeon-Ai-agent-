@@ -124,7 +124,7 @@ class RetrievalService {
    * Layer 2: FAQ RAG
    */
   async searchFAQs(queryOrEmbedding, tutorId = null) {
-    return this.vectorSearch(queryOrEmbedding, 'FAQ', tutorId, 0.45, 3);
+    return this.vectorSearch(queryOrEmbedding, 'FAQ', tutorId, 0.3, 3);
   }
 
   /**
@@ -214,34 +214,46 @@ class RetrievalService {
   }
 
   /**
-   * Layer 5: Intent-Specific Few-Shot Examples (Local SQLite)
-   * Retrieves relevant "style" examples based on the detected intent OR keyword matching.
+   * Layer 5: Intent-Specific Few-Shot Examples (Local SQLite + Supabase)
+   * Retrieves relevant "style" examples based on vector search OR intent/keyword matching.
    */
-  async getIntentExamples(intent, query = '', limit = 3) {
+  async getIntentExamples(intent, query = '', limit = 3, embedding = null, tutorId = null) {
     try {
       let examples = [];
       
-      // 1. Try Supabase Knowledge Base (STYLE category) first
-      const { data: styleEx } = await supabase
-        .from('knowledge_base')
-        .select('content')
-        .eq('category', 'STYLE')
-        .limit(limit);
-      
-      if (styleEx) {
-        examples = styleEx.map(ex => {
-          // Attempt to parse "Student: ... Admin: ..." format if it exists, 
-          // otherwise just return the content as a single block
-          return { student_message: 'Example', ideal_reply: ex.content };
-        });
+      // 1. Try Vector Search on Supabase Knowledge Base (STYLE category) first
+      if (embedding) {
+        const styleResults = await this.vectorSearch(embedding, 'STYLE', tutorId, 0.3, limit);
+        examples = styleResults.map(ex => ({
+          student_message: 'Example',
+          ideal_reply: ex.content
+        }));
+      } else {
+        // Fallback: plain fetch if no embedding available
+        let queryObj = supabase.from('knowledge_base').select('content').eq('category', 'STYLE');
+        if (tutorId) queryObj = queryObj.eq('tutor_id', tutorId);
+        const { data: styleEx } = await queryObj.limit(limit);
+        
+        if (styleEx) {
+          examples = styleEx.map(ex => ({
+            student_message: 'Example',
+            ideal_reply: ex.content
+          }));
+        }
       }
 
-      // 2. Try local SQLite intent match
+      // 2. Try local SQLite intent match (Training Conversations from Dashboard)
       if (examples.length < limit && intent && intent !== 'OTHER' && intent !== 'UNKNOWN') {
-        const localEx = await dbAll(
-          'SELECT student_message, ideal_reply FROM knowledge_examples WHERE intent = ? ORDER BY RANDOM() LIMIT ?',
-          [intent, limit - examples.length]
-        );
+        let localSql = 'SELECT student_message, ideal_reply FROM knowledge_examples WHERE intent = ?';
+        const localParams = [intent];
+        if (tutorId) {
+          localSql += ' AND tutor_id = ?';
+          localParams.push(tutorId);
+        }
+        localSql += ' ORDER BY RANDOM() LIMIT ?';
+        localParams.push(limit - examples.length);
+        
+        const localEx = await dbAll(localSql, localParams);
         examples = [...examples, ...localEx];
       }
 
@@ -251,9 +263,17 @@ class RetrievalService {
         if (words.length > 0) {
           let searchSql = 'SELECT student_message, ideal_reply FROM knowledge_examples WHERE ';
           const conditions = words.map(() => '(student_message ILIKE ? OR ideal_reply ILIKE ?)').join(' OR ');
-          searchSql += conditions + ' ORDER BY RANDOM() LIMIT ?';
+          
+          if (tutorId) {
+             searchSql += `tutor_id = ? AND (${conditions})`;
+          } else {
+             searchSql += conditions;
+          }
+          
+          searchSql += ' ORDER BY RANDOM() LIMIT ?';
           
           const params = [];
+          if (tutorId) params.push(tutorId);
           words.forEach(w => { params.push(`%${w}%`); params.push(`%${w}%`); });
           params.push(limit - examples.length);
 
