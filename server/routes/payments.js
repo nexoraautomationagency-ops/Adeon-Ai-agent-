@@ -45,11 +45,14 @@ async function handlePaymentSuccess(tutor, paymentId, studentId, month, year) {
     // 1. Activate Student
     await dbRun("UPDATE students SET status = 'active' WHERE id = ?", [student.id]);
 
-    // 2. Auto-Enroll in Class
+    // 2. Auto-Enroll in Class (Fallback only if no classes exist)
     if (student.grade) {
-      const matchingClass = await dbGet('SELECT id FROM classes WHERE tutor_id = ? AND grade = ? LIMIT 1', [tutor.id, student.grade]);
-      if (matchingClass) {
-        await dbRun('INSERT INTO student_classes (student_id, class_id) VALUES (?, ?) ON CONFLICT DO NOTHING', [student.id, matchingClass.id]);
+      const existingClasses = await dbGet('SELECT COUNT(*) as count FROM student_classes WHERE student_id = ?', [student.id]);
+      if (!existingClasses || existingClasses.count === 0) {
+        const matchingClass = await dbGet('SELECT id FROM classes WHERE tutor_id = ? AND grade = ? LIMIT 1', [tutor.id, student.grade]);
+        if (matchingClass) {
+          await dbRun('INSERT INTO student_classes (student_id, class_id) VALUES (?, ?) ON CONFLICT DO NOTHING', [student.id, matchingClass.id]);
+        }
       }
     }
 

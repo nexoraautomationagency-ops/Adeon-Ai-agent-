@@ -25,6 +25,7 @@ class WhatsAppService extends EventEmitter {
     this.processedMessages = new Set();
     this.inboundRateBuckets = new Map();
     this.pendingMessages = new Map(); // For message grouping (debouncing)
+    this.processingLocks = new Map(); // Mutex lock to prevent parallel AI race conditions
     this._adminCache = new Map(); // Fix Bug 47: Map of Set (tutorId -> Set of adminPhones)
     this._lastAdminUpdate = new Map();
 
@@ -39,6 +40,17 @@ class WhatsAppService extends EventEmitter {
         if (now - pending.timestamp > 60000) this.pendingMessages.delete(chatId);
       }
     }, 60000);
+  }
+
+  async _acquireLock(chatId) {
+    while (this.processingLocks.get(chatId)) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    this.processingLocks.set(chatId, true);
+  }
+
+  _releaseLock(chatId) {
+    this.processingLocks.delete(chatId);
   }
 
   clearTutorCache() {
@@ -246,9 +258,15 @@ class WhatsAppService extends EventEmitter {
             const pending = this.pendingMessages.get(msg.from);
             if (!pending) return;
             this.pendingMessages.delete(msg.from);
-            await this._handleMessageGroup(pending.msgObj, pending.body);
-            // Mark as processed ONLY after successful async work
-            this.processedMessages.add(msg.id._serialized);
+            
+            await this._acquireLock(msg.from);
+            try {
+              await this._handleMessageGroup(pending.msgObj, pending.body);
+              // Mark as processed ONLY after successful async work
+              this.processedMessages.add(msg.id._serialized);
+            } finally {
+              this._releaseLock(msg.from);
+            }
           } catch (e) {
             console.error('[WhatsApp] Group process error:', e.message);
           }
@@ -261,9 +279,17 @@ class WhatsAppService extends EventEmitter {
           const accumulatedText = pending ? pending.body : '';
           this.pendingMessages.delete(msg.from);
           const combinedBody = (accumulatedText + "\n" + (msg.body || '')).trim();
-          this._handleMessageGroup(msg, combinedBody)
-            .then(() => this.processedMessages.add(msg.id._serialized))
-            .catch(e => console.error('[WhatsApp] Image process error:', e.message));
+          
+          this._acquireLock(msg.from).then(async () => {
+            try {
+              await this._handleMessageGroup(msg, combinedBody);
+              this.processedMessages.add(msg.id._serialized);
+            } catch(e) {
+              console.error('[WhatsApp] Image process error:', e.message);
+            } finally {
+              this._releaseLock(msg.from);
+            }
+          });
         }
       }
     });
@@ -628,6 +654,7 @@ Show this help message.`;
 
       let student = studentByPhone || studentByWa;
       let studentId = student?.id;
+      const currentStudentStatus = student?.status || 'inactive';
 
       if (studentByWa && studentByPhone && studentByWa.id !== studentByPhone.id) {
         const leadId = studentByWa.id;
@@ -649,10 +676,18 @@ Show this help message.`;
       }
 
       if (studentId) {
-        const finalName = (name && name !== 'Unknown') ? name : student.name;
-        const finalGrade = (normalizedGrade && normalizedGrade !== 'N/A') ? normalizedGrade : student.grade;
+        // Safe merge fallback to prevent data loss during student record deduplication
+        const mergedName = studentByWa?.name || studentByPhone?.name;
+        const mergedGrade = studentByWa?.grade || studentByPhone?.grade;
+        const mergedSchool = studentByWa?.school || studentByPhone?.school;
+        const mergedAddress = studentByWa?.address || studentByPhone?.address;
+
+        const finalName = (name && name !== 'Unknown') ? name : mergedName;
+        const finalGrade = (normalizedGrade && normalizedGrade !== 'N/A') ? normalizedGrade : mergedGrade;
+        const finalSchool = (school && school !== 'N/A') ? school : mergedSchool;
+        
         await dbRun('UPDATE students SET name=?, phone=?, normalized_phone=?, grade=?, school=?, address=?, whatsapp_id=? WHERE id=?',
-          [finalName, formattedPhone, formattedPhone, finalGrade, school || student.school, data.address || student.address, senderId, studentId]);
+          [finalName, formattedPhone, formattedPhone, finalGrade, finalSchool, data.address || mergedAddress, senderId, studentId]);
       } else {
         const result = await dbRun(`INSERT INTO students (tutor_id, name, phone, normalized_phone, grade, school, address, whatsapp_id, status, monthly_fee) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id`, [tutorId, name, formattedPhone, formattedPhone, normalizedGrade, school, data.address || '', senderId, 'inactive', settings?.basic_fee || 0]);
         student = { id: result.lastInsertRowid };
@@ -679,6 +714,11 @@ Show this help message.`;
         }
 
         if (assignedClasses.length > 0) {
+          // Fix: Prevent test pollution/accumulation. If student is not fully active yet, wipe old class selections
+          if (currentStudentStatus !== 'active') {
+            await dbRun('DELETE FROM student_classes WHERE student_id = ?', [sid]);
+          }
+
           for (const c of assignedClasses) {
             const feeValue = parseFloat(c.fee) || parseFloat(settings?.basic_fee) || 0;
             totalFee += feeValue;

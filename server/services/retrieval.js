@@ -101,7 +101,7 @@ class RetrievalService {
       const [tutor, settings, classes] = await Promise.all([
         dbGet('SELECT * FROM tutors WHERE id = ?', [tutorId]),
         dbGet('SELECT * FROM settings WHERE tutor_id = ?', [tutorId]),
-        dbAll('SELECT id, subject, grade, day_of_week, start_time, end_time, location, fee FROM classes WHERE tutor_id = ? AND is_active = 1', [tutorId])
+        dbAll('SELECT id, name, subject, grade, day_of_week, start_time, end_time, location, fee FROM classes WHERE tutor_id = ? AND is_active = 1', [tutorId])
       ]);
 
       const data = {

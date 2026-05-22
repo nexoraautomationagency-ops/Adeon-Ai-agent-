@@ -108,7 +108,8 @@ REGISTRATION WORKFLOW (SOP)
 1. IF student intent is ADMISSION/JOIN:
     - **PHONE**: Extract the number as-is into extracted_data.phone. If "Pre-verified Phone" is shown in context, accept it without question.
     - **FIELD COLLECTION**: Extract all 6 fields (Name, Grade, School, Phone, Month, Address) into extracted_data.
-    - **MULTI-CLASS SELECTION**: Once they specify a class, extract the class IDs into "class_ids" JSON array.
+    - **IF STATE IS COLLECTING_DETAILS**: The user is actively providing registration info. Extract ANY recognized Name, Grade, School, Phone, Month, or Address from their message into extracted_data, even if their intent seems like "OTHER".
+    - **MULTI-CLASS SELECTION**: ONLY extract class IDs into "class_ids" array if the user EXPLICITLY typed the class name (e.g. "Theory", "Paper"). NEVER guess or auto-assign a class. If they haven't explicitly named a class, omit "class_ids" entirely.
     - **GENERAL INQUIRY RULE**: If asked for details/fees/bank info, respond with the exact *MASTER_TEMPLATE* provided in context.
     - **TUTOR INQUIRY RULE**: If asked for teacher's name, reply EXACTLY: "Sir ගේ නම ${tutorContext.settings?.tutor_name || 'අපේ Sir'} 😊".
     - **CLASS AVAILABILITY INQUIRY RULE**: If asked if there are classes, say "Ow 😊" and list ALL matching classes from INSTITUTE DATA.
@@ -147,6 +148,7 @@ ${intentExamples.map(e => `Student: "${e.student_message}"\nAdmin: "${e.ideal_re
 ==================================================
 KNOWN STUDENT DATA
 ==================================================
+Current State: ${studentContext.state}
 Name: ${studentContext.name || 'Unknown'} | Grade: ${studentContext.grade || 'Unknown'} | School: ${studentContext.school || 'Unknown'} | Phone: ${studentContext.phone || 'Unknown'} | Month: ${studentContext.pending_month || 'Unknown'} | Address: ${studentContext.address || 'Unknown'}
 Pre-verified Phone (from this message): ${preVerifiedPhone ? `${preVerifiedPhone} — ACCEPT THIS as the valid phone number without question.` : 'NONE — validate strictly: must be exactly 10 digits starting with 0 (e.g. 0771234567). If invalid, ask again.'}
 
@@ -268,7 +270,7 @@ Return STRICT JSON ONLY:
           console.error('[AI] Lead creation failed:', e.message);
         }
       }
-      const lowPrompt = prompt.toLowerCase().trim();
+      const lowPrompt = (prompt || '').toLowerCase().trim();
       const SCHEDULE_DIRECT = ['schedule', 'timetable', 'time table', 'පන්ති කාලසටහන', 'කාලසටහන'];
       const SCHEDULE_TIME = ['time', 'kawadada', 'keeyatada', 'keeyatda', 'thiyenne', 'thiyed', 'thiyen', 'thiyenawa', 'thiyenawada', 'welawa', 'welawada', 'dawasa', 'end', 'start', 'පන්ති', 'කවදද', 'වේලාව', 'වේලාව', 'කීයද', 'කීයටද'];
       const SCHEDULE_CLASS = ['class', 'grade', 'theory', 'revision'];
@@ -374,6 +376,24 @@ Return STRICT JSON ONLY:
       const anyNumberMatch = prompt.match(/(\d{7,15})/);
       const hasInvalidPhone = anyNumberMatch && !phoneMatch; // They sent a digit sequence but not a valid 10-digit SL number
 
+      // CRITICAL FIX: Content-based heuristic — detect if the message itself looks like
+      // someone providing registration details, even if history isn't saved yet.
+      // Triggers if: message has 3+ words AND contains a phone-like digit sequence OR
+      // contains known registration field patterns (grade/school/month keywords).
+      const wordCount = lowPrompt.trim().split(/\s+/).length;
+      const hasRegistrationPattern = wordCount >= 3 && (
+        /\d{7,}/.test(lowPrompt) ||                             // phone number present
+        /\bgrade\s*\d+\b|\b\d+\s*grade\b/.test(lowPrompt) ||   // grade pattern
+        /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/.test(lowPrompt) || // month
+        /\b(school|college|vidyalaya|maha|national)\b/.test(lowPrompt) // school keyword
+      );
+
+      // Force the LLM to know we are collecting details if the pattern matches,
+      // so it actually attempts to extract the variables!
+      if (hasRegistrationPattern && studentContext.state !== 'COLLECTING_DETAILS') {
+        studentContext.state = 'COLLECTING_DETAILS';
+      }
+
       const { data: result, usage } = await this._processTurn(prompt, history, {
         studentContext,
         tutorContext,
@@ -407,9 +427,12 @@ Return STRICT JSON ONLY:
       // PERMANENT PHONE FIX: Validate phone programmatically — never trust the AI's extracted value.
       // Must be exactly 10 digits starting with 0. If the AI extracted an 11-digit number or
       // anything invalid, we force it to null so registration cannot proceed with a bad number.
-      const rawPhone = result.extracted_data?.phone || studentContext.phone || '';
-      const validPhoneTest = rawPhone.replace(/\s+/g, '').match(/^(0\d{9})$/);
+      const rawPhone = String(result.extracted_data?.phone || studentContext.phone || '');
+      const validPhoneTest = rawPhone.match(/(?<!\d)(0\d{9})(?!\d)/);
       const finalPhone = validPhoneTest ? validPhoneTest[1] : null;
+
+      // Identify if they provided a phone-like number that was rejected
+      // (variables anyNumberMatch and hasInvalidPhone are already declared at the top of the function)
 
       const hasAnyDetail = !!(finalName || finalGrade || finalSchool || finalPhone || finalMonth || finalAddress);
 
@@ -425,7 +448,7 @@ Return STRICT JSON ONLY:
       ));
 
       const isCollecting = studentContext.status === 'lead' ||
-        studentContext.conversation_state === 'COLLECTING_DETAILS' ||
+        studentContext.state === 'COLLECTING_DETAILS' ||
         result.intent === 'ADMISSION' ||
         wasCollectingDetails;
 
@@ -453,12 +476,17 @@ Return STRICT JSON ONLY:
           result.missing_fields = missing;
           result.extracted_data = { ...result.extracted_data, name: finalName || '', grade: finalGrade || '', school: finalSchool || '', phone: finalPhone || '', month: finalMonth || '', address: finalAddress || '' };
 
-          // IMPROVED: If phone is the only missing field and the user sent a digit sequence
-          // (meaning they DID try to give a number but it's the wrong format/length),
-          // tell them WHY it failed instead of just saying "Phone" is missing.
-          if (missing.length === 1 && missing[0] === 'Phone' && hasInvalidPhone) {
-            const badNumber = anyNumberMatch[1];
-            result.reply = `ඔයාගේ phone number එක වැරදියි වගේ 😊 (Exactly 10 digits තියෙන්න ඕනේ. Example: 0771234567)`;
+          // IMPROVED: If the user sent a digit sequence (meaning they DID try to give a number 
+          // but it's the wrong format/length), tell them WHY it failed instead of just saying "Phone" is missing,
+          // even if other fields are missing.
+          if (missing.includes('Phone') && hasInvalidPhone) {
+            const otherMissing = missing.filter(m => m !== 'Phone');
+            if (otherMissing.length > 0) {
+              const missingList = otherMissing.join(', ');
+              result.reply = `ඔයාගේ phone number එක වැරදියි වගේ 😊 (Exactly 10 digits තියෙන්න ඕනේ).\nහරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: Phone, ${missingList}`;
+            } else {
+              result.reply = `ඔයාගේ phone number එක වැරදියි වගේ 😊 (Exactly 10 digits තියෙන්න ඕනේ. Example: 0771234567)`;
+            }
           } else {
             const missingList = missing.join(', ');
             result.reply = `හරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: ${missingList}`;
@@ -488,17 +516,20 @@ Return STRICT JSON ONLY:
               if (!result.extracted_data) result.extracted_data = {};
               result.extracted_data = { ...result.extracted_data, name: finalName, grade: finalGrade, school: finalSchool, phone: finalPhone, month: finalMonth, address: finalAddress };
 
-              const classListLines = matchedClasses.map(c => `• ${c.name}`).join('\n');
+              const formatClass = c => c.name || `${c.subject} — ${c.day_of_week} ${c.start_time} - ${c.end_time}`;
+              const classListLines = matchedClasses.map(c => `• ${formatClass(c)}`).join('\n');
               result.reply = `Thank you ${finalName} 😊\nඔයාගේ details check කරා. Grade ${finalGrade} සඳහා පහත classes available:\n${classListLines}\nඔයා join වෙන්න කැමති classes මොනවද?\n(Classes කිහිපයකට වුනත් join වෙන්න පුළුවන් 😊)`;
             } else {
               // They selected classes! Generate the final receipt using the total fee.
-              const selectedClasses = matchedClasses.filter(c => alreadySelected.includes(c.id));
+              const selectedClasses = matchedClasses.filter(c => alreadySelected.map(String).includes(String(c.id)));
               const totalFee = selectedClasses.reduce((sum, c) => sum + (parseFloat(c.fee) || 0), 0) || 1500;
-              const names = selectedClasses.map(c => c.name).join(' සහ ');
+              const formatClass = c => c.name || `${c.subject} — ${c.day_of_week} ${c.start_time} - ${c.end_time}`;
+              const names = selectedClasses.map(c => formatClass(c)).join(' සහ ');
 
               result.action = 'REGISTER_STUDENT';
               result.new_state = 'REGISTERED';
               result.missing_fields = [];
+              result.extracted_data = { ...result.extracted_data, class_ids: selectedClasses.map(c => c.id), name: finalName, grade: finalGrade, school: finalSchool, phone: finalPhone, month: finalMonth, address: finalAddress };
               result.reply = this._generateReceipt(receiptData, tutorContext, receiptInstruction, totalFee, names);
             }
           }
@@ -506,13 +537,13 @@ Return STRICT JSON ONLY:
       }
 
       if (result.new_state || result.extracted_data) {
-        this._updateStudentState(studentContext.id, result);
+        await this._updateStudentState(studentContext.id, result);
       }
 
-      this._logUsage(tutorId, chatId, usage || 250);
+      await this._logUsage(tutorId, chatId, usage || 250);
 
       return {
-        text: this._sanitizeReply(result.reply),
+        text: this._sanitizeReply(result.reply || 'office එකෙන් confirm කරලා දැනුම් දෙන්නම් 😊'),
         intent: result.intent,
         action: result.action, // Support old 'action' check
         command: result.action, // Support new 'command' check
@@ -575,12 +606,19 @@ ${receiptInstruction}`;
       const data = result.extracted_data || {};
 
       // Update the main student record with any info we just found
-      const name = data.name || '';
-      const grade = data.grade || '';
-      const school = data.school || '';
-      const address = data.address || '';
-      const phone = data.phone || data.contact || '';
-      const pendingMonth = data.month || ''; // Fix: persist month across conversation turns
+      const cleanExtracted = (val) => {
+        if (!val || typeof val !== 'string') return '';
+        const lower = val.toLowerCase().trim();
+        if (['unknown', 'n/a', 'none', 'null'].includes(lower)) return '';
+        return val;
+      };
+
+      const name = cleanExtracted(data.name);
+      const grade = cleanExtracted(data.grade);
+      const school = cleanExtracted(data.school);
+      const address = cleanExtracted(data.address);
+      const phone = cleanExtracted(data.phone || data.contact);
+      const pendingMonth = cleanExtracted(data.month);
 
       // PROTECTION: If student is already registered (status='active'), 
       // don't allow name/grade overwrites to prevent profile corruption.
