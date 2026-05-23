@@ -1,6 +1,5 @@
 const { dbGet, dbAll, dbRun } = require('../db/connection');
 const whatsappService = require('./whatsapp');
-const aiService = require('./ai');
 
 class CronService {
   constructor() {
@@ -21,6 +20,29 @@ class CronService {
   async runTasks() {
     console.log('[Cron] Running scheduled tasks...');
     await this.processPaymentReminders();
+  }
+
+  _buildPaymentReminderText(studentName, month, amount, settings) {
+    const bankName = settings?.bank_name?.trim() || '—';
+    const accountName = settings?.bank_account_holder?.trim() || '—';
+    const accountNumber = settings?.bank_account?.trim() || '—';
+    const branch = settings?.bank_branch?.trim() || '—';
+    const fee = parseFloat(amount) || 0;
+
+    return `Hi ${studentName} 😊
+
+${month} month class fee Rs.${fee} payment එක තවම receive වෙලා නැති නිසා මේ reminder message එක එවන්නේ.
+
+කරුණාකර පහත bank account එකට payment එක කරලා, receipt photo එක මෙතනට එවන්න 👍
+
+🏦 Bank: ${bankName}
+👤 Account Name: ${accountName}
+💳 Account Number: ${accountNumber}
+📍 Branch: ${branch}
+
+⚠️ Receipt එකේ ඔයාගේ Name, Grade සහ Phone Number එක ලියලා එවන්න.
+
+ස්තූතියි 😊`;
   }
 
   async processPaymentReminders() {
@@ -48,12 +70,16 @@ class CronService {
 
           for (const payment of unpaidPayments) {
             const chatId = payment.whatsapp_id || whatsappService._normalizePhone(payment.phone);
+            if (!chatId) continue;
             try {
-              const aiResponse = await aiService.generatePaymentReminder(payment.name, payment.amount, currentMonth);
-              if (aiResponse && aiResponse.text) {
-                await whatsappService.sendMessage(chatId, aiResponse.text, 1);
-                await new Promise(r => setTimeout(r, 3000));
-              }
+              const reminderText = this._buildPaymentReminderText(
+                payment.name,
+                currentMonth,
+                payment.amount,
+                setting
+              );
+              await whatsappService.sendMessage(chatId, reminderText, 1);
+              await new Promise(r => setTimeout(r, 3000));
             } catch (err) {
               console.error(`[Cron] Failed to send reminder to ${chatId}:`, err.message);
             }

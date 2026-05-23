@@ -69,7 +69,12 @@ setupWebSocket(server);
   async function start() {
     // Initialize database
     await initDb();
-    await migrate();
+    if (process.env.RUN_MIGRATE === 'true') {
+      await migrate();
+      console.log('[Migrate] Completed (RUN_MIGRATE=true)');
+    } else {
+      console.log('[Migrate] Skipped on boot — run npm run setup when schema changes, or set RUN_MIGRATE=true');
+    }
   
     server.listen(PORT, () => {
     console.log(`
@@ -111,20 +116,14 @@ process.on('exit', () => {
   try { closeDb(); } catch(e) {}
 });
 
-// Prevent zombie processes from wwebjs internal errors
+// Log unexpected errors but keep the bot running (single-tutor production safety).
+// SIGINT/SIGTERM still shut down cleanly for deploys.
 process.on('uncaughtException', (err) => {
-  console.error('🚨 [FATAL] Uncaught Exception:', err);
-  // Graceful shutdown before exit
-  gracefulShutdown('UNCAUGHT_EXCEPTION');
+  console.error('🚨 [uncaughtException] Bot stays online:', err?.stack || err?.message || err);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('⚠️ [Warning] Unhandled Rejection at:', promise, 'reason:', reason);
-  // Do NOT shut down on every rejection in production as it kills the bot for minor API errors
-  if (reason && (reason.message?.includes('database') || reason.message?.includes('connection'))) {
-    console.error('🚨 Critical DB error detected. Shutting down for safety...');
-    gracefulShutdown('CRITICAL_UNHANDLED_REJECTION');
-  }
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️ [unhandledRejection] Bot stays online:', reason?.stack || reason?.message || reason);
 });
 
 module.exports = app;

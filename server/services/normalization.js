@@ -110,16 +110,26 @@ class NormalizationService {
    */
   normalizePhone(phone) {
     if (!phone) return '';
-    let c = phone.replace(/[^0-9]/g, '');
-    
-    // Normalize country code
-    if (c.startsWith('94') && c.length === 11) c = '0' + c.substring(2);
-    
+    let c = String(phone).replace(/[^0-9]/g, '');
+
+    // Accept international prefixes +94 or 0094
+    if (c.startsWith('00') && c.length === 13) {
+      c = c.substring(2);
+    }
+    if (c.startsWith('94') && c.length === 11) {
+      c = '0' + c.substring(2);
+    }
+
+    // Accept common 9-digit mobile input without leading zero
+    if (c.length === 9 && /^[7-9]\d{8}$/.test(c)) {
+      c = '0' + c;
+    }
+
     // Validate length - should be exactly 10 digits starting with 0
     if (c.length !== 10 || !c.startsWith('0')) {
       return null;
     }
-    
+
     return c;
   }
 

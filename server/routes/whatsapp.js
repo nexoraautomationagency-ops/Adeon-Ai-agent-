@@ -1,6 +1,8 @@
 const express = require('express');
 const { dbAll, dbGet } = require('../db/connection');
 const whatsappService = require('../services/whatsapp');
+const cronService = require('../services/cron');
+const normalizationService = require('../services/normalization');
 const router = express.Router();
 
 router.get('/status', (req, res) => { res.json(whatsappService.getStatus()); });
@@ -116,33 +118,60 @@ router.post('/restart', async (req, res, next) => {
 
 router.post('/remind', async (req, res, next) => {
   try {
-    const { grade, month } = req.body;
+    const { grade, month, year } = req.body;
     if (!month) return res.status(400).json({ error: 'Month required' });
 
-    let query = "SELECT id, name, phone, whatsapp_id FROM students WHERE tutor_id=? AND status='active'";
-    const params = [req.tutor.id];
-    if (grade) { query += " AND grade LIKE ?"; params.push(`%${grade}%`); }
-
-    const students = await dbAll(query, params);
-    let sent = 0;
-    for (const s of students) {
-      const p = await dbGet("SELECT id FROM payments WHERE student_id=? AND month LIKE ?", [s.id, `%${month}%`]);
-      if (!p) {
-        const target = s.whatsapp_id || (s.phone.includes('@') ? s.phone : s.phone.replace(/[^0-9]/g, '') + '@c.us');
-        // Standardize phone if it's just numbers
-        let cleanTarget = target;
-        if (!target.includes('@')) {
-          if (target.startsWith('0')) cleanTarget = '94' + target.substring(1);
-          if (!cleanTarget.startsWith('94')) cleanTarget = '94' + cleanTarget;
-          cleanTarget += '@c.us';
-        }
-
-        await whatsappService.sendMessage(cleanTarget, `👋 ඔබේ *${month}* මාසය සඳහා පන්ති ගාස්තු තාමත් ලැබී නැත. කරුණාකර එය ඉක්මනින් complete කරන්න. 🙏`);
-        sent++;
-        await new Promise(r => setTimeout(r, 1000));
-      }
+    if (!whatsappService.getStatus().isReady) {
+      return res.status(503).json({ error: 'WhatsApp is not connected. Scan QR and wait until status is ready.' });
     }
-    res.json({ success: true, sent, total: students.length });
+
+    const normalizedMonth = normalizationService.normalizeMonth(month);
+    const paymentYear = year ? parseInt(year, 10) : new Date().getFullYear();
+
+    const settings = await dbGet('SELECT * FROM settings WHERE tutor_id = ?', [req.tutor.id]);
+    if (!settings) return res.status(404).json({ error: 'Settings not found' });
+
+    let query = `
+      SELECT p.amount, s.name, s.phone, s.whatsapp_id, s.grade
+      FROM payments p
+      JOIN students s ON s.id = p.student_id
+      WHERE p.tutor_id = ? AND p.month = ? AND p.year = ? AND p.status = 'unpaid' AND s.status = 'active'
+    `;
+    const params = [req.tutor.id, normalizedMonth, paymentYear];
+    if (grade) {
+      query += ' AND s.grade LIKE ?';
+      params.push(`%${grade}%`);
+    }
+
+    const unpaid = await dbAll(query, params);
+    let sent = 0;
+    let skipped = 0;
+
+    for (const row of unpaid) {
+      const chatId = row.whatsapp_id || whatsappService._normalizePhone(row.phone);
+      if (!chatId) {
+        skipped++;
+        continue;
+      }
+      const reminderText = cronService._buildPaymentReminderText(
+        row.name,
+        normalizedMonth,
+        row.amount,
+        settings
+      );
+      await whatsappService.sendMessage(chatId, reminderText, 1);
+      sent++;
+      await new Promise(r => setTimeout(r, 3000));
+    }
+
+    res.json({
+      success: true,
+      sent,
+      skipped,
+      total: unpaid.length,
+      month: normalizedMonth,
+      year: paymentYear
+    });
   } catch (err) { next(err); }
 });
 

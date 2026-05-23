@@ -109,7 +109,7 @@ export default function PaymentsPage() {
             if (!confirm(`Send WhatsApp reminders to all unpaid students for ${month}?`)) return;
             toast.loading('Sending reminders...', { id: 'remind' });
             try {
-              const r = await api.sendReminders({ month });
+              const r = await api.sendReminders({ month, year });
               toast.success(`Sent ${r.sent} reminders! 📢`, { id: 'remind' });
             } catch (e) { toast.error(e.message, { id: 'remind' }); }
           }} disabled={loading}><AlertCircle size={18}/>Remind All</button>

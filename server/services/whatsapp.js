@@ -208,6 +208,12 @@ class WhatsAppService extends EventEmitter {
 
       this.emit('status_change', { status: this.status });
       this._processQueue();
+      // Resend approval welcomes that may have been lost if the server restarted mid-queue
+      setTimeout(() => {
+        this._retryPendingWelcomeMessages().catch(e =>
+          console.warn('[WhatsApp] Welcome retry skipped:', e.message)
+        );
+      }, 12000);
     });
 
     this.client.on('auth_failure', (msg) => {
@@ -368,6 +374,12 @@ class WhatsAppService extends EventEmitter {
 
     const tutorId = this._tutorCache?.id || 1;
     const normalizedActual = normalizationService.normalizePhone(actualPhone);
+
+    if (await this._isInboundMessageProcessed(msg)) {
+      console.log('[WhatsApp] Skipping duplicate inbound:', msg.id?._serialized);
+      return;
+    }
+
     await this._logMessage(msg, 'incoming', 0, null, null, tutorId);
     const isGroup = msg.from.includes('@g.us');
     this.emit('message', { tutor_id: tutorId, from: senderId, body: combinedBody, isGroup, timestamp: msg.timestamp, type: msg.type, chatId: msg.from, msgId: msg.id._serialized });
@@ -526,10 +538,31 @@ Show this help message.`;
 
         const aiResponse = await aiService.processMessage(combinedBody, senderId, tutorId);
         if (aiResponse && aiResponse.text) {
-          await this.sendMessage(senderId, aiResponse.text, 1, aiResponse.intent);
           if (aiResponse.command === 'REGISTER_STUDENT' && aiResponse.data) {
-            await this._handleRegistration(aiResponse.data, senderId, actualPhone);
-          } else if (aiResponse.command === 'ESCALATE' || aiResponse.intent === 'COMPLAIN') {
+            const reg = await this._handleRegistration(aiResponse.data, senderId, actualPhone, tutorId);
+            if (!reg.success) {
+              const failSuffix = (actualPhone && actualPhone.length >= 9) ? actualPhone.slice(-9) : actualPhone;
+              const failStudent = await dbGet(
+                'SELECT name, grade, phone FROM students WHERE whatsapp_id = ? OR phone LIKE ? LIMIT 1',
+                [senderId, failSuffix ? `%${failSuffix}` : '%']
+              );
+              const failLabel = failStudent?.name
+                ? `${failStudent.name} (Grade ${failStudent.grade || '—'})`
+                : actualPhone;
+              await this.notifyAdmin(
+                `⚠️ *Registration Save Failed*\n👤 *Student:* ${failLabel}\n📱 *Phone:* ${failStudent?.phone || actualPhone}\n❌ *Error:* ${reg.error || 'Unknown'}\n💬 *Message:* "${(combinedBody || '').substring(0, 180)}"\n\nPlease check dashboard and help them complete registration.`
+              );
+              await this.sendMessage(
+                senderId,
+                'හරි 😊 ඔයාගේ details අපි ලැබුණා. Sir ට pass කරලා ඉක්මනට contact කරන්නම් 😊',
+                1,
+                aiResponse.intent
+              );
+              return;
+            }
+          }
+          await this.sendMessage(senderId, aiResponse.text, 1, aiResponse.intent);
+          if (aiResponse.command === 'ESCALATE' || aiResponse.intent === 'COMPLAIN') {
             const cleanPhone = actualPhone.replace(/\D/g, '');
             const suffix = (cleanPhone && cleanPhone.length >= 9) ? cleanPhone.slice(-9) : (cleanPhone || '');
             const student = await dbGet('SELECT name, grade FROM students WHERE whatsapp_id = ? OR phone LIKE ?', [senderId, `%${suffix}`]);
@@ -569,6 +602,96 @@ Show this help message.`;
     }
   }
 
+  async _findStudentsByContact(tutorId, senderId, explicitPhone = null) {
+    const variants = [senderId, senderId.replace('@c.us', '@lid'), senderId.replace('@lid', '@c.us')];
+    const phoneOnly = (senderId || '').split('@')[0].split(':')[0];
+    let normalizedFromWa = null;
+    try {
+      if (phoneOnly && phoneOnly.length <= 15) normalizedFromWa = normalizationService.normalizePhone(phoneOnly);
+    } catch (e) { /* LID ids are not real phones */ }
+
+    let normalizedFromMsg = null;
+    if (explicitPhone) {
+      try { normalizedFromMsg = normalizationService.normalizePhone(explicitPhone); } catch (e) { }
+    }
+    const normalized = normalizedFromMsg || normalizedFromWa;
+    const suffix = normalized && normalized.length >= 9 ? normalized.slice(-9) : null;
+
+    const byWa = await dbGet(
+      'SELECT * FROM students WHERE tutor_id = ? AND whatsapp_id IN (?, ?, ?)',
+      [tutorId, ...variants]
+    );
+
+    let byPhone = null;
+    if (normalized) {
+      byPhone = await dbGet(
+        `SELECT * FROM students WHERE tutor_id = ? AND (
+          normalized_phone = ? OR phone = ? OR phone LIKE ?
+        )`,
+        [tutorId, normalized, normalized, `%${suffix}`]
+      );
+    }
+
+    return { byWa, byPhone, normalized };
+  }
+
+  async _mergeStudentRecords(leadId, mainId) {
+    if (!leadId || !mainId || leadId === mainId) return mainId;
+    const leadPayments = await dbAll('SELECT id, month, year, receipt_url FROM payments WHERE student_id = ?', [leadId]);
+    for (const lp of leadPayments) {
+      const mainPayment = await dbGet(
+        'SELECT id, receipt_url FROM payments WHERE student_id = ? AND month = ? AND year = ?',
+        [mainId, lp.month, lp.year]
+      );
+      if (mainPayment) {
+        const newUrl = mainPayment.receipt_url
+          ? (lp.receipt_url ? `${mainPayment.receipt_url},${lp.receipt_url}` : mainPayment.receipt_url)
+          : lp.receipt_url;
+        await dbRun("UPDATE payments SET receipt_url = ?, status = 'pending' WHERE id = ?", [newUrl, mainPayment.id]);
+        await dbRun('DELETE FROM payments WHERE id = ?', [lp.id]);
+      } else {
+        await dbRun('UPDATE payments SET student_id = ? WHERE id = ?', [mainId, lp.id]);
+      }
+    }
+    await dbRun('UPDATE message_logs SET student_id = ? WHERE student_id = ?', [mainId, leadId]);
+    await dbRun('DELETE FROM students WHERE id = ?', [leadId]);
+    return mainId;
+  }
+
+  async _resolveStudentRecord(tutorId, senderId, explicitPhone = null) {
+    const { byWa, byPhone } = await this._findStudentsByContact(tutorId, senderId, explicitPhone);
+    let student = byPhone || byWa;
+    let studentId = student?.id;
+
+    if (byWa && byPhone && byWa.id !== byPhone.id) {
+      studentId = await this._mergeStudentRecords(byWa.id, byPhone.id);
+      student = await dbGet('SELECT * FROM students WHERE id = ?', [studentId]);
+    } else if (byWa && !byPhone && explicitPhone) {
+      let formattedPhone;
+      try { formattedPhone = normalizationService.normalizePhone(explicitPhone); } catch (e) { formattedPhone = null; }
+      if (formattedPhone) {
+        const suffix = formattedPhone.length >= 9 ? formattedPhone.slice(-9) : formattedPhone;
+        const phoneOwner = await dbGet(
+          `SELECT * FROM students WHERE tutor_id = ? AND id != ? AND (
+            normalized_phone = ? OR phone = ? OR phone LIKE ?
+          )`,
+          [tutorId, byWa.id, formattedPhone, formattedPhone, `%${suffix}`]
+        );
+        if (phoneOwner) {
+          studentId = await this._mergeStudentRecords(byWa.id, phoneOwner.id);
+          student = await dbGet('SELECT * FROM students WHERE id = ?', [studentId]);
+        }
+      }
+    }
+
+    if (student?.id && senderId) {
+      await dbRun('UPDATE students SET whatsapp_id = ? WHERE id = ?', [senderId, student.id]);
+      student.whatsapp_id = senderId;
+    }
+
+    return student;
+  }
+
   async _handleReceipt(msg, senderId, actualPhone) {
     try {
       const media = await msg.downloadMedia();
@@ -580,34 +703,37 @@ Show this help message.`;
       const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(filename);
       await this._logMessage(msg, 'incoming', 0, publicUrl);
 
-      const phoneOnly = actualPhone.split('@')[0];
-      const normalizedActual = normalizationService.normalizePhone(phoneOnly);
-      const phoneSuffix = (phoneOnly && phoneOnly.length >= 9) ? phoneOnly.slice(-9) : (phoneOnly || '');
-      const variants = [senderId, senderId.replace('@c.us', '@lid'), senderId.replace('@lid', '@c.us')];
+      const tutorId = this._tutorCache?.id || (await dbGet('SELECT id FROM tutors LIMIT 1'))?.id || 1;
 
-      const tutor = await dbGet("SELECT id FROM tutors ORDER BY role = 'developer' DESC, id ASC LIMIT 1");
-      const tutorId = tutor?.id || 1;
-
-      let student = await dbGet(`
-        SELECT id FROM students 
-        WHERE whatsapp_id IN (?, ?, ?) 
-        OR normalized_phone = ?
-      `, [...variants, normalizedActual]);
+      let student = await this._resolveStudentRecord(tutorId, senderId, actualPhone);
 
       if (!student) {
-        const res = await dbRun('INSERT INTO students (tutor_id, whatsapp_id, status, normalized_phone, phone, notes) VALUES (?, ?, ?, ?, ?, ?) RETURNING id',
-          [tutorId, senderId, 'lead', normalizedActual, actualPhone, 'Uploaded receipt before registration']);
-        student = { id: res.lastInsertRowid };
+        const res = await dbRun(
+          'INSERT INTO students (tutor_id, whatsapp_id, status, notes) VALUES (?, ?, ?, ?) RETURNING id',
+          [tutorId, senderId, 'lead', 'Uploaded receipt before registration']
+        );
+        student = { id: res.lastInsertRowid, pending_month: null, name: null };
       }
 
-      const currentMonth = normalizationService.normalizeMonth();
+      let paymentMonth = student.pending_month
+        ? normalizationService.normalizeMonth(student.pending_month)
+        : null;
+      if (!paymentMonth) {
+        const openPayment = await dbGet(
+          `SELECT month FROM payments WHERE student_id = ? AND status IN ('unpaid', 'pending') ORDER BY created_at DESC LIMIT 1`,
+          [student.id]
+        );
+        paymentMonth = openPayment?.month
+          ? normalizationService.normalizeMonth(openPayment.month)
+          : normalizationService.normalizeMonth();
+      }
       const currentYear = new Date().getFullYear();
-      let payment = await dbGet('SELECT id, receipt_url FROM payments WHERE student_id = ? AND month = ? AND year = ?', [student.id, currentMonth, currentYear]);
+      let payment = await dbGet('SELECT id, receipt_url FROM payments WHERE student_id = ? AND month = ? AND year = ?', [student.id, paymentMonth, currentYear]);
       if (payment) {
         const updatedUrls = payment.receipt_url ? `${payment.receipt_url},${publicUrl}` : publicUrl;
         await dbRun("UPDATE payments SET receipt_url = ?, status = 'pending' WHERE id = ?", [updatedUrls, payment.id]);
       } else {
-        await dbRun("INSERT INTO payments (tutor_id, student_id, amount, month, year, status, receipt_url) VALUES (?, ?, ?, ?, ?, 'pending', ?)", [tutorId, student.id, 0, currentMonth, currentYear, publicUrl]);
+        await dbRun("INSERT INTO payments (tutor_id, student_id, amount, month, year, status, receipt_url) VALUES (?, ?, ?, ?, ?, 'pending', ?)", [tutorId, student.id, 0, paymentMonth, currentYear, publicUrl]);
       }
 
       const studentInfo = await dbGet('SELECT name, phone FROM students WHERE id = ?', [student.id]);
@@ -616,7 +742,7 @@ Show this help message.`;
       const ackMessage = "Hari 😊 Receipt එක ලැබුණා. Admin ඒක check කරලා ඉක්මනටම ඔයාව group එකට add කරයි. පැය 24ක් ඇතුළත ඔයාට confirmation message එකක් ලැබෙයි. 👍";
 
       if (studentInfo && studentInfo.name) {
-        await this.notifyAdmin(`📸 *Payment Receipt Received*\n👤 *Student:* ${studentInfo.name}\n📱 *Phone:* ${studentInfo.phone}\n📅 *Month:* ${currentMonth}\n🔗 *Receipt:* ${publicUrl}\n\nTo approve, type: *approve ${studentInfo.phone} ${currentMonth}*`, media);
+        await this.notifyAdmin(`📸 *Payment Receipt Received*\n👤 *Student:* ${studentInfo.name}\n📱 *Phone:* ${studentInfo.phone}\n📅 *Month:* ${paymentMonth}\n🔗 *Receipt:* ${publicUrl}\n\nTo approve, type: *approve ${studentInfo.phone} ${paymentMonth}*`, media);
         await this.sendMessage(senderId, ackMessage);
       } else {
         const phoneDesc = studentInfo?.phone || actualPhone;
@@ -628,7 +754,7 @@ Show this help message.`;
     } catch (e) { console.error('[WhatsApp] Receipt Error:', e.message); }
   }
 
-  async _handleRegistration(data, senderId, actualPhone) {
+  async _handleRegistration(data, senderId, actualPhone, tutorIdOverride = null) {
     const name = data.name || 'Unknown';
     const grade = data.grade || 'N/A';
     const school = data.school || 'N/A';
@@ -636,8 +762,7 @@ Show this help message.`;
     const year = new Date().getFullYear();
 
     try {
-      const tutor = await dbGet("SELECT id FROM tutors ORDER BY role = 'developer' DESC, id ASC LIMIT 1");
-      const tutorId = tutor?.id || 1;
+      const tutorId = tutorIdOverride || this._tutorCache?.id || (await dbGet('SELECT id FROM tutors LIMIT 1'))?.id || 1;
       const settings = await dbGet('SELECT basic_fee FROM settings WHERE tutor_id = ?', [tutorId]);
       const normalizedGrade = normalizationService.normalizeGrade(grade);
       const studentPhone = data.contact || data.phone || actualPhone;
@@ -645,55 +770,34 @@ Show this help message.`;
       if (!formattedPhone) {
         throw new Error('Invalid phone number provided');
       }
-      const phoneSuffix = formattedPhone.length >= 9 ? formattedPhone.slice(-9) : formattedPhone;
-
-      const variants = [senderId, senderId.replace('@c.us', '@lid'), senderId.replace('@lid', '@c.us')];
-
-      const studentByWa = await dbGet(`SELECT * FROM students WHERE whatsapp_id IN (?, ?, ?)`, variants);
-      const studentByPhone = await dbGet(`SELECT * FROM students WHERE normalized_phone = ?`, [formattedPhone]);
-
-      let student = studentByPhone || studentByWa;
-      let studentId = student?.id;
-      const currentStudentStatus = student?.status || 'inactive';
-
-      if (studentByWa && studentByPhone && studentByWa.id !== studentByPhone.id) {
-        const leadId = studentByWa.id;
-        const mainId = studentByPhone.id;
-        const leadPayments = await dbAll('SELECT id, month, year, receipt_url FROM payments WHERE student_id = ?', [leadId]);
-        for (const lp of leadPayments) {
-          const mainPayment = await dbGet('SELECT id, receipt_url FROM payments WHERE student_id = ? AND month = ? AND year = ?', [mainId, lp.month, lp.year]);
-          if (mainPayment) {
-            const newUrl = mainPayment.receipt_url ? (lp.receipt_url ? `${mainPayment.receipt_url},${lp.receipt_url}` : mainPayment.receipt_url) : lp.receipt_url;
-            await dbRun("UPDATE payments SET receipt_url = ?, status = 'pending' WHERE id = ?", [newUrl, mainPayment.id]);
-            await dbRun("DELETE FROM payments WHERE id = ?", [lp.id]);
-          } else {
-            await dbRun("UPDATE payments SET student_id = ? WHERE id = ?", [mainId, lp.id]);
-          }
-        }
-        await dbRun('UPDATE message_logs SET student_id = ? WHERE student_id = ?', [mainId, leadId]);
-        await dbRun('DELETE FROM students WHERE id = ?', [leadId]);
-        student = studentByPhone; studentId = mainId;
+      const student = await this._resolveStudentRecord(tutorId, senderId, formattedPhone);
+      if (!student?.id) {
+        throw new Error('Could not resolve or create student record');
       }
+      const studentId = student.id;
+      const currentStudentStatus = student.status || 'inactive';
 
-      if (studentId) {
-        // Safe merge fallback to prevent data loss during student record deduplication
-        const mergedName = studentByWa?.name || studentByPhone?.name;
-        const mergedGrade = studentByWa?.grade || studentByPhone?.grade;
-        const mergedSchool = studentByWa?.school || studentByPhone?.school;
-        const mergedAddress = studentByWa?.address || studentByPhone?.address;
+      const finalName = (name && name !== 'Unknown') ? name : student.name;
+      const finalGrade = (normalizedGrade && normalizedGrade !== 'N/A') ? normalizedGrade : student.grade;
+      const finalSchool = (school && school !== 'N/A') ? school : student.school;
 
-        const finalName = (name && name !== 'Unknown') ? name : mergedName;
-        const finalGrade = (normalizedGrade && normalizedGrade !== 'N/A') ? normalizedGrade : mergedGrade;
-        const finalSchool = (school && school !== 'N/A') ? school : mergedSchool;
-        
-        await dbRun('UPDATE students SET name=?, phone=?, normalized_phone=?, grade=?, school=?, address=?, whatsapp_id=? WHERE id=?',
-          [finalName, formattedPhone, formattedPhone, finalGrade, finalSchool, data.address || mergedAddress, senderId, studentId]);
-      } else {
-        const result = await dbRun(`INSERT INTO students (tutor_id, name, phone, normalized_phone, grade, school, address, whatsapp_id, status, monthly_fee) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id`, [tutorId, name, formattedPhone, formattedPhone, normalizedGrade, school, data.address || '', senderId, 'inactive', settings?.basic_fee || 0]);
-        student = { id: result.lastInsertRowid };
-      }
+      await dbRun(
+        'UPDATE students SET name=?, phone=?, normalized_phone=?, grade=?, school=?, address=?, whatsapp_id=?, pending_month=?, conversation_state=? WHERE id=?',
+        [
+          finalName || name,
+          formattedPhone,
+          formattedPhone,
+          finalGrade || normalizedGrade,
+          finalSchool || school,
+          data.address || student.address || '',
+          senderId,
+          month,
+          'WAITING_PAYMENT',
+          studentId
+        ]
+      );
 
-      const sid = studentId || student.id;
+      const sid = studentId;
 
       // Auto-assign Class and Fee based on Grade and AI Class Selection
       if (sid && normalizedGrade && normalizedGrade !== 'N/A') {
@@ -755,7 +859,66 @@ Show this help message.`;
         }
         this.emit('db_update', { tutor_id: tutorId, table: 'students', action: studentId ? 'update_enrollment' : 'new_enrollment', name });
       }
-    } catch (e) { console.error('[WhatsApp] Registration Error:', e.message); }
+      return { success: true };
+    } catch (e) {
+      console.error('[WhatsApp] Registration Error:', e.message);
+      return { success: false, error: e.message };
+    }
+  }
+
+  async _isInboundMessageProcessed(msg) {
+    const msgId = msg?.id?._serialized;
+    if (!msgId) return false;
+    const row = await dbGet('SELECT id FROM message_logs WHERE whatsapp_msg_id = ?', [msgId]);
+    return !!row;
+  }
+
+  async _retryPendingWelcomeMessages() {
+    if (!this.isReady) return;
+    const tutorId = this._tutorCache?.id;
+    const params = [];
+    let tutorFilter = '';
+    if (tutorId) {
+      tutorFilter = 'AND p.tutor_id = ?';
+      params.push(tutorId);
+    }
+
+    const rows = await dbAll(`
+      SELECT p.month, p.paid_date, s.name, s.whatsapp_id, s.phone
+      FROM payments p
+      JOIN students s ON s.id = p.student_id
+      WHERE p.status = 'paid'
+        AND p.paid_date > NOW() - INTERVAL '72 hours'
+        ${tutorFilter}
+      ORDER BY p.paid_date DESC
+      LIMIT 15
+    `, params);
+
+    let resent = 0;
+    for (const row of rows) {
+      const chatId = (row.whatsapp_id && row.whatsapp_id.includes('@'))
+        ? row.whatsapp_id
+        : this._normalizePhone(row.phone);
+      if (!chatId) continue;
+
+      const sent = await dbGet(`
+        SELECT id FROM message_logs
+        WHERE whatsapp_chat_id = ?
+          AND direction = 'outgoing'
+          AND (content ILIKE '%has been approved%' OR content ILIKE '%Welcome to the class%')
+          AND created_at >= ?::timestamp
+        LIMIT 1
+      `, [chatId, row.paid_date]);
+
+      if (sent) continue;
+
+      const welcomeText = `Your registration for ${row.month} has been approved. Welcome to the class! ✅`;
+      await this.sendMessage(chatId, welcomeText);
+      resent++;
+      console.log(`[WhatsApp] Resent welcome to ${row.name || chatId} (${row.month})`);
+      await new Promise(r => setTimeout(r, 3000));
+    }
+    if (resent > 0) console.log(`[WhatsApp] Welcome retry complete: ${resent} message(s)`);
   }
 
   async _logMessage(msg, direction, isAi = 0, mediaUrl = null, intent = null) {

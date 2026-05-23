@@ -1,6 +1,7 @@
 const express = require('express');
 const { dbRun, dbGet, dbAll } = require('../db/connection');
 const whatsappService = require('../services/whatsapp');
+const normalizationService = require('../services/normalization');
 const { developerOnly } = require('../middleware/auth');
 const router = express.Router();
 
@@ -71,8 +72,12 @@ router.post('/', async (req, res) => {
   const { name, phone, grade, school, parent_name, parent_phone, address, monthly_fee, notes } = req.body;
   if (!name || !phone) return res.status(400).json({ error: 'Name and phone are required' });
   try {
-    const result = await dbRun('INSERT INTO students (tutor_id,name,phone,grade,school,parent_name,parent_phone,address,monthly_fee,notes) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id',
-      [req.tutor.id, name, phone, grade||null, school||null, parent_name||null, parent_phone||null, address||null, monthly_fee||0, notes||null]);
+    let normalizedPhone = null;
+    try { normalizedPhone = normalizationService.normalizePhone(phone); } catch (e) { }
+    const result = await dbRun(
+      'INSERT INTO students (tutor_id,name,phone,normalized_phone,grade,school,parent_name,parent_phone,address,monthly_fee,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING id',
+      [req.tutor.id, name, phone, normalizedPhone, grade||null, school||null, parent_name||null, parent_phone||null, address||null, monthly_fee||0, notes||null]
+    );
     const student = await dbGet('SELECT * FROM students WHERE id = ?', [result.lastInsertRowid]);
     res.status(201).json({ student });
   } catch (err) {
@@ -87,8 +92,16 @@ router.put('/:id', async (req, res) => {
   const existing = await dbGet('SELECT * FROM students WHERE id = ? AND tutor_id = ?', [req.params.id, req.tutor.id]);
   if (!existing) return res.status(404).json({ error: 'Student not found' });
   const { name, phone, grade, school, parent_name, parent_phone, address, monthly_fee, status, notes, whatsapp_id } = req.body;
-  await dbRun(`UPDATE students SET name=COALESCE(?,name),phone=COALESCE(?,phone),grade=COALESCE(?,grade),school=COALESCE(?,school),parent_name=COALESCE(?,parent_name),parent_phone=COALESCE(?,parent_phone),address=COALESCE(?,address),monthly_fee=COALESCE(?,monthly_fee),status=COALESCE(?,status),notes=COALESCE(?,notes),whatsapp_id=COALESCE(?,whatsapp_id),updated_at=CURRENT_TIMESTAMP WHERE id=? AND tutor_id=?`,
-    [name||null,phone||null,grade||null,school||null,parent_name||null,parent_phone||null,address||null,monthly_fee??null,status||null,notes||null,whatsapp_id||null,req.params.id,req.tutor.id]);
+  let normalizedPhone = null;
+  if (phone) {
+    try {
+      normalizedPhone = normalizationService.normalizePhone(phone);
+    } catch (e) {
+      normalizedPhone = null;
+    }
+  }
+  await dbRun(`UPDATE students SET name=COALESCE(?,name),phone=COALESCE(?,phone),normalized_phone=CASE WHEN ? IS NOT NULL THEN ? ELSE normalized_phone END,grade=COALESCE(?,grade),school=COALESCE(?,school),parent_name=COALESCE(?,parent_name),parent_phone=COALESCE(?,parent_phone),address=COALESCE(?,address),monthly_fee=COALESCE(?,monthly_fee),status=COALESCE(?,status),notes=COALESCE(?,notes),whatsapp_id=COALESCE(?,whatsapp_id),updated_at=CURRENT_TIMESTAMP WHERE id=? AND tutor_id=?`,
+    [name||null,phone||null,phone||null,normalizedPhone||null,grade||null,school||null,parent_name||null,parent_phone||null,address||null,monthly_fee??null,status||null,notes||null,whatsapp_id||null,req.params.id,req.tutor.id]);
   
   const student = await dbGet('SELECT * FROM students WHERE id = ?', [req.params.id]);
 

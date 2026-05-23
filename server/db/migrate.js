@@ -289,7 +289,8 @@ async function migrate() {
         kb.metadata::jsonb,
         (1 - (kb.embedding <=> query_embedding))::float8 AS similarity
       FROM knowledge_base kb
-      WHERE (1 - (kb.embedding <=> query_embedding) > match_threshold)
+      WHERE kb.embedding IS NOT NULL
+      AND (1 - (kb.embedding <=> query_embedding) > match_threshold)
       AND (filter_category IS NULL OR kb.category = filter_category)
       AND (filter_tutor_id IS NULL OR kb.tutor_id IS NULL OR kb.tutor_id = filter_tutor_id)
       ORDER BY kb.embedding <=> query_embedding
@@ -318,6 +319,7 @@ async function migrate() {
         (1 - (kb.embedding <=> query_embedding))::float8 AS similarity
       FROM knowledge_base kb
       WHERE kb.category = 'INTENT'
+      AND kb.embedding IS NOT NULL
       AND (1 - (kb.embedding <=> query_embedding) > match_threshold)
       AND (filter_tutor_id IS NULL OR kb.tutor_id IS NULL OR kb.tutor_id = filter_tutor_id)
       ORDER BY kb.embedding <=> query_embedding

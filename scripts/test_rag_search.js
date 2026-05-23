@@ -15,7 +15,7 @@ const { getEmbedding } = require('../server/services/ai-utils');
   // 2. Call the RPC function directly (same way retrieval.js does)
   const { data, error } = await supabase.rpc('match_knowledge_v2', {
     query_embedding: embedding,
-    match_threshold: 0.45,
+    match_threshold: 0.28,
     match_count: 3,
     filter_category: 'FAQ',
     filter_tutor_id: 2

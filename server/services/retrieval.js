@@ -59,7 +59,7 @@ class RetrievalService {
   /**
    * Semantic Intent Matching
    */
-  async matchIntent(queryOrEmbedding, tutorId = null, matchThreshold = 0.55) {
+  async matchIntent(queryOrEmbedding, tutorId = null, matchThreshold = 0.50) {
     try {
       let embedding;
 
@@ -72,8 +72,9 @@ class RetrievalService {
 
       if (!embedding) return 'UNKNOWN';
 
-      // OPT: Skip Supabase RPC call if no INTENT records are seeded yet
-      const { count } = await supabase.from('knowledge_base').select('*', { count: 'exact', head: true }).eq('category', 'INTENT').eq('tutor_id', tutorId || 0);
+      let intentCountQuery = supabase.from('knowledge_base').select('*', { count: 'exact', head: true }).eq('category', 'INTENT');
+      if (tutorId) intentCountQuery = intentCountQuery.eq('tutor_id', tutorId);
+      const { count } = await intentCountQuery;
       if (!count || count === 0) return 'UNKNOWN';
 
       const { data, error } = await supabase.rpc('match_intents', {
@@ -128,7 +129,7 @@ class RetrievalService {
    * Layer 2: FAQ RAG
    */
   async searchFAQs(queryOrEmbedding, tutorId = null) {
-    return this.vectorSearch(queryOrEmbedding, 'FAQ', tutorId, 0.3, 3);
+    return this.vectorSearch(queryOrEmbedding, 'FAQ', tutorId, 0.28, 3);
   }
 
   /**
@@ -169,9 +170,16 @@ class RetrievalService {
       
       if (!student) return { state: 'NEW_LEAD', score: 'COLD', profile: 'Unknown Student', name: null, grade: null, school: null, phone: null };
 
-      const recentPayments = await dbAll('SELECT month, status FROM payments WHERE student_id = ? ORDER BY year DESC, month DESC LIMIT 2', [student.id]);
+      const recentPayments = await dbAll('SELECT month, status, receipt_url, year FROM payments WHERE student_id = ? ORDER BY year DESC, month DESC LIMIT 3', [student.id]);
       const hasPendingPayment = recentPayments.some(p => p.status === 'unpaid' || p.status === 'pending');
       const payStatus = recentPayments.map(p => `${p.month}: ${p.status}`).join(', ');
+
+      const regMonth = student.pending_month || recentPayments[0]?.month || null;
+      const regYear = new Date().getFullYear();
+      const regPayment = regMonth
+        ? recentPayments.find(p => String(p.month).toLowerCase() === String(regMonth).toLowerCase()) ||
+          await dbGet('SELECT status, receipt_url, month FROM payments WHERE student_id = ? AND LOWER(month) = LOWER(?) AND year = ?', [student.id, regMonth, regYear])
+        : null;
 
       // Fix 3: 48-Hour Context Trap Timeout
       let activeState = student.conversation_state || 'NEW_LEAD';
@@ -188,9 +196,13 @@ class RetrievalService {
         grade: student.grade || null,
         school: student.school || null,
         phone: student.phone || null,
-        address: student.address || null,           
-        pending_month: student.pending_month || null, 
+        address: student.address || null,
+        pending_month: student.pending_month || null,
         notes: student.notes || '',
+        studentStatus: student.status || 'lead',
+        paymentStatus: regPayment?.status || null,
+        paymentMonth: regMonth,
+        receiptUploaded: !!(regPayment?.receipt_url),
         hasPendingPayment,
         state: activeState,
         score: student.lead_score || 'WARM',
