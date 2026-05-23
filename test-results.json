@@ -1,0 +1,545 @@
+[
+  {
+    "question": "Hi",
+    "full_response": {
+      "text": "👋 Hello! මම Adeon class admin 😊 අද මම help කරන්නේ කොහොමද?",
+      "intent": "GREETING",
+      "action": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Kohomada",
+    "full_response": {
+      "text": "හෙලෝ! කොහොමද? 😊",
+      "intent": "GREETING",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Sir innawada?",
+    "full_response": {
+      "text": "ඔව් 😊 Sir ගේ නම Sampath Kumara.",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "English ok?",
+    "full_response": {
+      "text": "Yes, you can ask in English too 😊 ප්‍රශ්නයක් නැහැ.",
+      "intent": "GREETING",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Oya kauda?",
+    "full_response": {
+      "text": "ඔව් 😊 official Admin මම.",
+      "intent": "GREETING",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Class duration eka kochcharada?",
+    "full_response": {
+      "text": "Class එක සාමාන්‍යයෙන් පැය 2-3ක් විතර තියෙනවා 😊.",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Class ekata join wenne kohomada?",
+    "full_response": {
+      "text": "හරි 😊 register වෙන්න ඔයාගේ විස්තර ටික එවන්න: Name, Grade, School, Phone, Month සහ Address.",
+      "intent": "ADMISSION",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Admin ekkada katha karanne?",
+    "full_response": {
+      "text": "👋 Hello! මම Adeon class admin 😊 ඔයාට කොහොමද? කුමක් හෝ ප්‍රශ්නයක් තියෙනවාද?",
+      "intent": "GREETING",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Grade 10 class thiyenawada?",
+    "full_response": {
+      "text": "✨ Grade 10 සඳහා පන්ති කාලසටහන (Schedule) ✨\n\n📅 *Friday*\n⏰ 08:00 - 10:00\n🎓 Grade 10 Science Theory\n📍 Online\n\nවැඩි විස්තර සඳහා ඕනෑම වෙලාවක මෙතැනින් අහන්න! 👍",
+      "intent": "SCHEDULE",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Grade 6 science theory clz eka kiyatada?",
+    "full_response": {
+      "text": "Grade 6 Science Theory class fee Rs.1200.00 😊. Classes are on Monday at 08:00 online.\n\nහරි 😊 register වෙන්න ඔයාගේ විස්තර ටික එවන්න: Name, Grade, School, Phone, Month සහ Address.",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Science paper class thiyenawada?",
+    "full_response": {
+      "text": "✨ පන්ති කාලසටහන (Schedule) ✨\n\n📅 *Monday*\n⏰ 08:00 - 10:00\n🎓 Grade 6 Science Theory\n📍 Online\n\n📅 *Tuesday*\n⏰ 08:00 - 10:00\n🎓 Grade 7 Science Theory\n📍 Online\n\n📅 *Wednesday*\n⏰ 08:00 - 10:00\n🎓 Grade 8 Science Theory\n📍 Online\n\n📅 *Thursday*\n⏰ 08:00 - 10:00\n🎓 Grade 9 Science Theory\n📍 Online\n\n📅 *Friday*\n⏰ 08:00 - 10:00\n🎓 Grade 10 Science Theory\n📍 Online\n\n📅 *Saturday*\n⏰ 08:00 - 10:00\n🎓 Grade 11 Science Theory\n📍 Online\n\nවැඩි විස්තර සඳහා ඕනෑම වෙලාවක මෙතැනින් අහන්න! 👍",
+      "intent": "SCHEDULE",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Mama Richmond college eke, grade 10, online clz join wenna puluwanda?",
+    "full_response": {
+      "text": "හරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: Name, Phone, Month, Address",
+      "intent": "ADMISSION",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {
+        "school": "Richmond college",
+        "grade": "10",
+        "name": "",
+        "phone": "",
+        "month": "",
+        "address": ""
+      }
+    }
+  },
+  {
+    "question": "Physical to online yanna puluwanda?",
+    "full_response": {
+      "text": "හරි 😊 register වෙන්න ඔයාගේ විස්තර ටික එවන්න: Name, Grade, School, Phone, Month සහ Address.",
+      "intent": "ADMISSION",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Ayet details denna onada?",
+    "full_response": {
+      "text": "*Class Details*\nGrade 6-11 Students (Sinhala Medium)\n📞 0771234567\n\n*Monthly Class Fees*\nGrade 6-9: Rs.1200/-\nGrade 10 & 11: Rs.1500/-\n\n*Bank Details*\nBank of Ceylon (BOC)\nAccount No: 1234567890\nName: adeon class\nBranch: Colombo\n\n*New students la registration complete කරලා payment කරන්න 😊*\n\n*Payment Instructions*\n📌 Bank slip එකේ Name, WhatsApp Number, Paid Month, Grade pen එකෙන් ලියලා එවන්න. \n📌 Online Pay කරනවා නම් Description එකට WhatsApp Number එක දාන්න.\n📌 Tippex කරපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ. වැරදුනොත් single line එකකින් කපලා ලියන්න.\n\nSampath Kumara\nBSc.(Sp) University of Peradeniya",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Admission fee thiyenawada?",
+    "full_response": {
+      "text": "නැහැ 😊 monthly class fee විතරයි තියෙන්නේ.",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Details sent",
+    "full_response": {
+      "text": "*Class Details*\nGrade 6-11 Students (Sinhala Medium)\n📞 0771234567\n\n*Monthly Class Fees*\nGrade 6-9: Rs.1200/-\nGrade 10 & 11: Rs.1500/-\n\n*Bank Details*\nBank of Ceylon (BOC)\nAccount No: 1234567890\nName: adeon class\nBranch: Colombo\n\n*New students la registration complete කරලා payment කරන්න 😊*\n\n*Payment Instructions*\n📌 Bank slip එකේ Name, WhatsApp Number, Paid Month, Grade pen එකෙන් ලියලා එවන්න. \n📌 Online Pay කරනවා නම් Description එකට WhatsApp Number එක දාන්න.\n📌 Tippex කරපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ. වැරදුනොත් single line එකකින් කපලා ලියන්න.\n\nSampath Kumara\nBSc.(Sp) University of Peradeniya",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "My name is Kamal, I am in grade 11",
+    "full_response": {
+      "text": "හරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: School, Phone, Month, Address",
+      "intent": "ADMISSION",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {
+        "name": "Kamal",
+        "grade": "11",
+        "school": "",
+        "phone": "",
+        "month": "",
+        "address": "",
+        "class_ids": []
+      }
+    }
+  },
+  {
+    "question": "Class time eka kiyatada?",
+    "full_response": {
+      "text": "✨ පන්ති කාලසටහන (Schedule) ✨\n\n📅 *Monday*\n⏰ 08:00 - 10:00\n🎓 Grade 6 Science Theory\n📍 Online\n\n📅 *Tuesday*\n⏰ 08:00 - 10:00\n🎓 Grade 7 Science Theory\n📍 Online\n\n📅 *Wednesday*\n⏰ 08:00 - 10:00\n🎓 Grade 8 Science Theory\n📍 Online\n\n📅 *Thursday*\n⏰ 08:00 - 10:00\n🎓 Grade 9 Science Theory\n📍 Online\n\n📅 *Friday*\n⏰ 08:00 - 10:00\n🎓 Grade 10 Science Theory\n📍 Online\n\n📅 *Saturday*\n⏰ 08:00 - 10:00\n🎓 Grade 11 Science Theory\n📍 Online\n\nවැඩි විස්තර සඳහා ඕනෑම වෙලාවක මෙතැනින් අහන්න! 👍",
+      "intent": "SCHEDULE",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Mage number eka 0771234567",
+    "full_response": {
+      "text": "හරි 😊 ඔයාගේ phone update කරා.\n\nහරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: Name, Grade, School, Month, Address",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {
+        "phone": "0771234567",
+        "name": "",
+        "grade": "",
+        "school": "",
+        "month": "",
+        "address": ""
+      }
+    }
+  },
+  {
+    "question": "Payment how?",
+    "full_response": {
+      "text": "Bank details වලට payment කරලා receipt photo එක එවන්න 😊",
+      "intent": "PAYMENT",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Discount ekak denna puluwanda?",
+    "full_response": {
+      "text": "Standard fee එක තමයි තියෙන්නේ 😊 Sir ට message එකක් දාලා අහන්න.",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Two months pay karannada?",
+    "full_response": {
+      "text": "පුළුවන් 😊 receipt එකේ months mention කරන්න.",
+      "intent": "PAYMENT",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Payment verify karanna wela yanawada?",
+    "full_response": {
+      "text": "24 hours ඇතුළත verify කරනවා 😊",
+      "intent": "PAYMENT",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Scholarship thiyenawada?",
+    "full_response": {
+      "text": "ඒ ගැන Sir ට direct message එකක් දාන්න 😊",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "How to send receipt?",
+    "full_response": {
+      "text": "WhatsApp එකට photo එකක් විදිහට එවන්න 😊",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Can I pay by cash?",
+    "full_response": {
+      "text": "Physical class එකේදී cash pay කරන්න පුළුවන් 😊",
+      "intent": "PAYMENT",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Fees kochcharada grade 10 ekata?",
+    "full_response": {
+      "text": "Grade 10 Science Theory: Rs.1500.00/-",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Mama salli damma, dan mokada karanne?",
+    "full_response": {
+      "text": "Salli damanna puluwan. Payment details balanna: Bank: Bank of Ceylon (BOC), Account: 1234567890, Holder: adeon class, Branch: Colombo 😊",
+      "intent": "PAYMENT",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Bank account details dennako",
+    "full_response": {
+      "text": "*Class Details*\nGrade 6-11 Students (Sinhala Medium)\n📞 0771234567\n\n*Monthly Class Fees*\nGrade 6-9: Rs.1200/-\nGrade 10 & 11: Rs.1500/-\n\n*Bank Details*\nBank of Ceylon (BOC)\nAccount No: 1234567890\nName: adeon class\nBranch: Colombo\n\n*New students la registration complete කරලා payment කරන්න 😊*\n\n*Payment Instructions*\n📌 Bank slip එකේ Name, WhatsApp Number, Paid Month, Grade pen එකෙන් ලියලා එවන්න. \n📌 Online Pay කරනවා නම් Description එකට WhatsApp Number එක දාන්න.\n📌 Tippex කරපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ. වැරදුනොත් single line එකකින් කපලා ලියන්න.\n\nSampath Kumara\nBSc.(Sp) University of Peradeniya",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Mama heta salli dannam",
+    "full_response": {
+      "text": "Heta salli dannam nam, bank details kiyanne: Bank of Ceylon (BOC), Account: 1234567890, Holder: adeon class, Branch: Colombo 😊",
+      "intent": "PAYMENT",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Is there a class today?",
+    "full_response": {
+      "text": "ඔව් 😊 changes තිබ්බොත් විතරයි announce කරන්නේ.",
+      "intent": "SCHEDULE",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Next class eka kiyatada?",
+    "full_response": {
+      "text": "*Class Details*\nGrade 6-11 Students (Sinhala Medium)\n📞 0771234567\n\n*Monthly Class Fees*\nGrade 6-9: Rs.1200/-\nGrade 10 & 11: Rs.1500/-\n\n*Bank Details*\nBank of Ceylon (BOC)\nAccount No: 1234567890\nName: adeon class\nBranch: Colombo\n\n*New students la registration complete කරලා payment කරන්න 😊*\n\n*Payment Instructions*\n📌 Bank slip එකේ Name, WhatsApp Number, Paid Month, Grade pen එකෙන් ලියලා එවන්න. \n📌 Online Pay කරනවා නම් Description එකට WhatsApp Number එක දාන්න.\n📌 Tippex කරපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ. වැරදුනොත් single line එකකින් කපලා ලියන්න.\n\nSampath Kumara\nBSc.(Sp) University of Peradeniya",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Link eka ewannako",
+    "full_response": {
+      "text": "Class එකෙන් පස්සේ group එකට link එවෙනවා 😊",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Ada class nadda?",
+    "full_response": {
+      "text": "Ow 😊 classes thiyenawa! Grade 6-11 Science Theory classes available. Details one day check karanna.",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Recording eka ganna puluwanda?",
+    "full_response": {
+      "text": "Class එකෙන් පස්සේ group එකට link එවෙනවා 😊",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Class link eka wada na",
+    "full_response": {
+      "text": "Class එකෙන් පස්සේ group එකට link එවෙනවා 😊",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Sir ada clz eka thiyenawada?",
+    "full_response": {
+      "text": "Ow 😊 class thiyenawa! 6-11 Science Theory classes thiyenawa. Kiyanna, oya kela thiyenawada?",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Tute eka labun na",
+    "full_response": {
+      "text": "PDFs group එකේ media section එකේ තියෙනවා 😊",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Mage school eka change una",
+    "full_response": {
+      "text": "හරි 😊 New school එක එවන්න, මම system එක update කරන්නම්.\n\nහරි 😊 register වෙන්න ඔයාගේ විස්තර ටික එවන්න: Name, Grade, School, Phone, Month සහ Address.",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Change grade",
+    "full_response": {
+      "text": "Grade හෝ Month එක change කරන්න නම් කරුණාකර Sir ට direct message එකක් දාන්න 😊",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Address eka wenas karanna one",
+    "full_response": {
+      "text": "Address එක change කරන්න නම් කරුණාකර Sir ට direct message එකක් දාන්න 😊",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Mama class eken ain wenawa",
+    "full_response": {
+      "text": "ඔයා class එකෙන් ain වෙන්න හිතනවා නම්, කරුණාකර Sir ට direct message එකක් දාන්න 😊",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Group eken left wela ayeth join wenne kohomada?",
+    "full_response": {
+      "text": "Zoom group එකෙන් exit වෙලා නැවත join වෙන්න 😊. Audio settings check කරන්න.",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Phone num eka change karanna one",
+    "full_response": {
+      "text": "හරි 😊 New number එක send කරන්න, මම update කරන්නම්.",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Mata grade 9 and 10 dekama karanna one",
+    "full_response": {
+      "text": "හරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: Name, School, Phone, Month, Address",
+      "intent": "ADMISSION",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {
+        "grade": "9, 10",
+        "class_ids": [],
+        "name": "",
+        "school": "",
+        "phone": "",
+        "month": "",
+        "address": ""
+      }
+    }
+  },
+  {
+    "question": "Malli grade 6, mama grade 11 clz thiyenawada?",
+    "full_response": {
+      "text": "✨ Grade 6 සඳහා පන්ති කාලසටහන (Schedule) ✨\n\n📅 *Monday*\n⏰ 08:00 - 10:00\n🎓 Grade 6 Science Theory\n📍 Online\n\nවැඩි විස්තර සඳහා ඕනෑම වෙලාවක මෙතැනින් අහන්න! 👍",
+      "intent": "SCHEDULE",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Mama last month salli dila na, me mase ekka danna puluwanda?",
+    "full_response": {
+      "text": "ඔව්, last month salli dila නැත්තම් me mase ekka danna puluwan 😊",
+      "intent": "PAYMENT",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Mata online be physical one",
+    "full_response": {
+      "text": "Online class එකට physical class එකට වඩා flexibility තියෙනවා 😊. ඔයාට කොහොමද?",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Sirge personal number eka diyanko",
+    "full_response": {
+      "text": "කණගාටුයි, Sir ගේ personal number එක share කරන්න බැහැ 😊.",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Zoom link eka password illanawa",
+    "full_response": {
+      "text": "Zoom link එකට password එක check කරන්න. WhatsApp group එකේ pinned messages බලන්න 😊",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Sir mawa clz eken ain karalada?",
+    "full_response": {
+      "text": "ඔයා class එකෙන් ain කරලා නැහැ 😊. මට details දීලා confirm කරන්න පුළුවන්.",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "command": "RESPOND",
+      "data": {}
+    }
+  },
+  {
+    "question": "Class eka boring",
+    "full_response": {
+      "text": "*Class Details*\nGrade 6-11 Students (Sinhala Medium)\n📞 0771234567\n\n*Monthly Class Fees*\nGrade 6-9: Rs.1200/-\nGrade 10 & 11: Rs.1500/-\n\n*Bank Details*\nBank of Ceylon (BOC)\nAccount No: 1234567890\nName: adeon class\nBranch: Colombo\n\n*New students la registration complete කරලා payment කරන්න 😊*\n\n*Payment Instructions*\n📌 Bank slip එකේ Name, WhatsApp Number, Paid Month, Grade pen එකෙන් ලියලා එවන්න. \n📌 Online Pay කරනවා නම් Description එකට WhatsApp Number එක දාන්න.\n📌 Tippex කරපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ. වැරදුනොත් single line එකකින් කපලා ලියන්න.\n\nSampath Kumara\nBSc.(Sp) University of Peradeniya",
+      "intent": "OTHER",
+      "action": "RESPOND",
+      "data": {}
+    }
+  }
+]

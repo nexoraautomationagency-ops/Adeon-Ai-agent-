@@ -59,7 +59,7 @@ class RetrievalService {
   /**
    * Semantic Intent Matching
    */
-  async matchIntent(queryOrEmbedding, tutorId = null, matchThreshold = 0.7) {
+  async matchIntent(queryOrEmbedding, tutorId = null, matchThreshold = 0.55) {
     try {
       let embedding;
 
