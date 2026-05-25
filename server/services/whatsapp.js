@@ -1191,7 +1191,7 @@ Show this help message.`;
       try {
         const sent = await this.client.sendMessage(chatId, message, options || {});
         await this._logMessage(sent, 'outgoing', 0, mediaUrl || null);
-        await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000));
+        await new Promise(r => setTimeout(r, 800 + Math.random() * 400));
       } catch (e) {
         console.error('[WhatsApp] Queue send error:', e.message);
       }
