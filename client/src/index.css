@@ -533,6 +533,11 @@ body {
   padding-right: 32px;
 }
 
+.form-select option {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+}
+
 .form-row {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
