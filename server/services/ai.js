@@ -658,10 +658,27 @@ Return STRICT JSON ONLY:
         }
       }
 
-      const COMPLAINT_WORDS = ['gewanna ba', 'salli na', 'amaruy', 'hadala denna', 'visadala denna', 'kiyala denna'];
+      const COMPLAINT_WORDS = ['gewanna ba', 'salli na', 'amaruy', 'hadala denna', 'visadala denna', 'kiyala denna', 'ayin', 'drop', 'remove', 'kick'];
       const isComplaint = COMPLAINT_WORDS.some(k => lowPrompt.includes(k)) ||
         (['complain', 'aulak', 'awul'].some(k => lowPrompt.includes(k)) && !['na', 'ne', 'naha'].some(k => lowPrompt.includes(k)));
-      if (isComplaint) return { text: 'මම මේ පණිවිඩය Sir ට යැව්වා 😊', intent: 'COMPLAIN', command: 'ESCALATE', action: 'ESCALATE', data: {} };
+      if (isComplaint) return { text: 'මම මේ පණිවිඩය Sir ට යැව්වා 😊 Sir ඉක්මනටම ඔයාට message එකක් යවයි.', intent: 'COMPLAIN', command: 'ESCALATE', action: 'ESCALATE', data: {} };
+
+      if (studentContext.hasPendingPayment && studentContext.receiptUploaded) {
+        const classStatusRequest = /class.*(add|join|welada|added|add karala|add karan|add karala|add karala|add karanawada|add wela|added|welada|nidahasa|enroll|register)/i;
+        const statusCheck = /(add|join|welada|added|enroll|register).*(class)|class.*(add|join|welada|added|enroll|register)/i;
+        if (classStatusRequest.test(lowPrompt) || statusCheck.test(lowPrompt)) {
+          return {
+            text: 'ඔයාගේ receipt එක ලැබුණා 😊 ඒක verify කරලා 24 පැය ඇතුළත class එකට add කරලා confirmation message එකක් දෙන්නම්.',
+            intent: 'PAYMENT',
+            action: 'RESPOND',
+            data: {}
+          };
+        }
+      }
+
+      // Class add/modify requests require manual Sir approval
+      const isClassModifyRequest = /class.*(add|remove|change|modify|drop|exchange)|add.*class/i.test(lowPrompt);
+      if (isClassModifyRequest) return { text: 'Class add/remove කරන්න නම් Sir ට direct message එකක් දාන්න. Sir handle කරයි 😊', intent: 'OTHER', command: 'ESCALATE', action: 'ESCALATE', data: {} };
 
       const DELIVERY_WORDS = ['labuna', 'laba', 'hambuna', 'hambana', 'received', 'badu'];
       if (DELIVERY_WORDS.some(k => lowPrompt.includes(k)) || /\bawa\b/.test(lowPrompt))
