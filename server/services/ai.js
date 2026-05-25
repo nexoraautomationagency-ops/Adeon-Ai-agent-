@@ -20,10 +20,10 @@ class AIService {
 
   _isJoinInquiryCore(lowPrompt) {
     if (!lowPrompt) return false;
-    const wantsJoin = /(join|register|admission|regist|එන්න|සම්බන්ධ)/i.test(lowPrompt);
+    const wantsJoin = /(join|register|admission|regist|එන්න|සම්බන්ධ|එකතු)/i.test(lowPrompt);
     if (!wantsJoin) return false;
-    const asksHowOrIntent = /(kohom|kohomada|how|wenna|wenne|wenn|one|onne|ona|puluwanda|කොහොම|පුළුවන්)/i.test(lowPrompt);
-    const mentionsClassJoin = /(class|clz|පන්ති).*(join|register)|(join|register).*(class|clz|පන්ති)/i.test(lowPrompt);
+    const asksHowOrIntent = /(kohom|kohomada|how|wenna|wenne|wenn|one|onne|ona|puluwanda|කොහොම|පුළුවන්|වෙන්න|ඕනෙ|ඕනි|ඔනී)/i.test(lowPrompt);
+    const mentionsClassJoin = /(class|clz|පන්ති|panti).*(join|register|සම්බන්ධ|එකතු)|(join|register|සම්බන්ධ|එකතු).*(class|clz|පන්ති|panti)/i.test(lowPrompt);
     return asksHowOrIntent || mentionsClassJoin;
   }
 
