@@ -89,18 +89,18 @@ export default function PaymentsPage() {
         <div className="flex flex-wrap md-flex-nowrap items-center gap-3 w-full md-w-auto">
           <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/5 w-full md-w-auto" style={{height:44}}>
             <select className="form-select border-0" value={month} onChange={e=>setMonth(e.target.value)} style={{minWidth:110, height:38, backgroundColor:'transparent'}}>
-              {MONTHS.map(m=><option key={m} style={{color: '#000', backgroundColor: '#fff'}}>{m}</option>)}
+              {MONTHS.map(m=><option key={m}>{m}</option>)}
             </select>
             <div style={{width:1, height:20, background:'rgba(255,255,255,0.1)'}}/>
             <select className="form-select border-0" value={year} onChange={e=>setYear(parseInt(e.target.value))} style={{width:85, height:38, backgroundColor:'transparent', paddingRight:25}}>
-              {Array.from({length: new Date().getFullYear() - 2024 + 2}, (_, i) => 2024 + i).map(y=><option key={y} value={y} style={{color: '#000', backgroundColor: '#fff'}}>{y}</option>)}
+              {Array.from({length: new Date().getFullYear() - 2024 + 2}, (_, i) => 2024 + i).map(y=><option key={y} value={y}>{y}</option>)}
             </select>
           </div>
           <select className="form-select flex-1 md-flex-none" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{minWidth:120, maxWidth:130, height:44, borderRadius:12}}>
-            <option value="" style={{color: '#000', backgroundColor: '#fff'}}>All Status</option>
-            <option value="paid" style={{color: '#000', backgroundColor: '#fff'}}>Paid</option>
-            <option value="unpaid" style={{color: '#000', backgroundColor: '#fff'}}>Unpaid</option>
-            <option value="pending" style={{color: '#000', backgroundColor: '#fff'}}>Pending</option>
+            <option value="">All Status</option>
+            <option value="paid">Paid</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="pending">Pending</option>
           </select>
         </div>
         
