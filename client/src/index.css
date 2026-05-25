@@ -534,8 +534,8 @@ body {
 }
 
 .form-select option {
-  background-color: var(--bg-input);
-  color: var(--text-primary);
+  background-color: #ffffff !important;
+  color: #000000 !important;
 }
 
 .form-row {
