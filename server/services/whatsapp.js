@@ -765,10 +765,18 @@ Show this help message.`;
       const tutorId = tutorIdOverride || this._tutorCache?.id || (await dbGet('SELECT id FROM tutors LIMIT 1'))?.id || 1;
       const settings = await dbGet('SELECT basic_fee FROM settings WHERE tutor_id = ?', [tutorId]);
       const normalizedGrade = normalizationService.normalizeGrade(grade);
-      const studentPhone = data.contact || data.phone || actualPhone;
-      const formattedPhone = normalizationService.normalizePhone(studentPhone);
+      
+      // Try to extract phone from message data first
+      let formattedPhone = null;
+      if (data.contact || data.phone) {
+        try { formattedPhone = normalizationService.normalizePhone(data.contact || data.phone); } catch (e) { }
+      }
+      
+      // If no valid phone in message, ask for it instead of failing
       if (!formattedPhone) {
-        throw new Error('Invalid phone number provided');
+        const missingPhoneMsg = "ඔයාගේ phone number එක දාගෙන එවන්න 😊 (e.g., 0771234567 හෝ +94771234567)";
+        await this.sendMessage(senderId, missingPhoneMsg);
+        return; // Don't proceed with registration yet
       }
       const student = await this._resolveStudentRecord(tutorId, senderId, formattedPhone);
       if (!student?.id) {

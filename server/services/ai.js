@@ -44,8 +44,10 @@ class AIService {
 
   /** "How to join" / "want to join" — use fixed template, not free-form LLM */
   _isJoinInquiry(lowPrompt, hasRegistrationPattern) {
-    if (!lowPrompt || hasRegistrationPattern) return false;
+    if (!lowPrompt) return false;
     if (this._isProfileInquiry(lowPrompt)) return false;
+    // IMPORTANT: Don't skip join inquiry just because they mentioned grade/month/school
+    // Students saying "join" should always get the detail collection prompt first
     return this._isJoinInquiryCore(lowPrompt);
   }
 
