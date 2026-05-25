@@ -676,6 +676,38 @@ Return STRICT JSON ONLY:
         }
       }
 
+      // If student asks whether they are approved / added, reply with current status
+      const isApprovalCheck = /(approve|approved|am i|am I|accepted|status.*(approve|added)|add welada|add wela|added|am i added|am I added)/i;
+      if (isApprovalCheck.test(lowPrompt)) {
+        // If student already active/paid/registered
+        if (studentContext.studentStatus === 'active' || studentContext.paymentStatus === 'paid' || ['REGISTERED'].includes(studentContext.state)) {
+          return {
+            text: 'ඔයා approved වෙලා තියෙනවා ✅ ඔයා group එකට add කරලා තියෙනවා. Approval/Group notification ලැබෙනවා නම් ඔයාට message එක යවයි.',
+            intent: 'OTHER',
+            action: 'RESPOND',
+            data: {}
+          };
+        }
+
+        // If receipt uploaded and pending verification
+        if (studentContext.receiptUploaded || studentContext.hasPendingPayment) {
+          return {
+            text: 'ඔයාගේ receipt එක අපිට ලැබිලා තියෙනවා 😊 Admin verify කරලා 24 පැය ඇතුළත approval දීලා group එකට add කරලා confirmation message එකක් එවන්නම්.',
+            intent: 'PAYMENT',
+            action: 'RESPOND',
+            data: {}
+          };
+        }
+
+        // No receipt / not paid
+        return {
+          text: 'ඔයාගේ approval status නොපවත්වයි — ඔබට approval සඳහා receipt යවන්න (e.g., 0771234567) හෝ Sir ට message කරන්න.',
+          intent: 'OTHER',
+          action: 'RESPOND',
+          data: {}
+        };
+      }
+
       // Class add/modify requests require manual Sir approval
       const isClassModifyRequest = /class.*(add|remove|change|modify|drop|exchange)|add.*class/i.test(lowPrompt);
       if (isClassModifyRequest) return { text: 'Class add/remove කරන්න නම් Sir ට direct message එකක් දාන්න. Sir handle කරයි 😊', intent: 'OTHER', command: 'ESCALATE', action: 'ESCALATE', data: {} };
