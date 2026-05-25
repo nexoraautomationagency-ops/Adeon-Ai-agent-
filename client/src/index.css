@@ -1,7 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  color-scheme: dark;
   /* Color System */
   --bg-primary: #0a0e1a;
   --bg-secondary: #111827;
@@ -67,7 +66,6 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  color-scheme: dark;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -533,6 +531,11 @@ body {
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 32px;
+}
+
+.form-select option {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .form-row {

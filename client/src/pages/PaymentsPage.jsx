@@ -88,12 +88,12 @@ export default function PaymentsPage() {
       <div className="glass-card p-6 rounded-2xl mb-6 flex flex-wrap items-center justify-between gap-6 shadow-glow">
         <div className="flex flex-wrap md-flex-nowrap items-center gap-3 w-full md-w-auto">
           <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/5 w-full md-w-auto" style={{height:44}}>
-            <select className="form-select border-0 text-white" value={month} onChange={e=>setMonth(e.target.value)} style={{minWidth:110, height:38, backgroundColor: '#151b2e', color: 'white'}}>
-              {MONTHS.map(m=><option key={m} style={{backgroundColor: '#151b2e', color: 'white'}}>{m}</option>)}
+            <select className="form-select border-0" value={month} onChange={e=>setMonth(e.target.value)} style={{minWidth:110, height:38, backgroundColor:'transparent'}}>
+              {MONTHS.map(m=><option key={m}>{m}</option>)}
             </select>
             <div style={{width:1, height:20, background:'rgba(255,255,255,0.1)'}}/>
-            <select className="form-select border-0 text-white" value={year} onChange={e=>setYear(parseInt(e.target.value))} style={{width:85, height:38, paddingRight:25, backgroundColor: '#151b2e', color: 'white'}}>
-              {Array.from({length: new Date().getFullYear() - 2024 + 2}, (_, i) => 2024 + i).map(y=><option key={y} value={y} style={{backgroundColor: '#151b2e', color: 'white'}}>{y}</option>)}
+            <select className="form-select border-0" value={year} onChange={e=>setYear(parseInt(e.target.value))} style={{width:85, height:38, backgroundColor:'transparent', paddingRight:25}}>
+              {Array.from({length: new Date().getFullYear() - 2024 + 2}, (_, i) => 2024 + i).map(y=><option key={y} value={y}>{y}</option>)}
             </select>
           </div>
           <select className="form-select flex-1 md-flex-none" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{minWidth:120, maxWidth:130, height:44, borderRadius:12}}>
