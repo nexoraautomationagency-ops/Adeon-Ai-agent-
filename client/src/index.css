@@ -534,11 +534,6 @@ body {
   padding-right: 32px;
 }
 
-.form-select option {
-  background-color: #ffffff !important;
-  color: #000000 !important;
-}
-
 .form-row {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
