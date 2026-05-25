@@ -968,12 +968,18 @@ ${receiptInstruction}`;
         return val;
       };
 
+      const normalizationService = require('./normalization');
+      
       const name = cleanExtracted(data.name);
       const grade = cleanExtracted(data.grade);
       const school = cleanExtracted(data.school);
       const address = cleanExtracted(data.address);
       const phone = cleanExtracted(data.phone || data.contact);
-      const pendingMonth = cleanExtracted(data.month);
+      let pendingMonth = cleanExtracted(data.month);
+      // Normalize Sinhala month names to English (e.g., "මැයි" → "May")
+      if (pendingMonth) {
+        try { pendingMonth = normalizationService.normalizeMonth(pendingMonth); } catch (e) { }
+      }
 
       // PROTECTION: If student is already registered (status='active'), 
       // don't allow name/grade overwrites to prevent profile corruption.

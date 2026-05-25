@@ -84,16 +84,48 @@ class NormalizationService {
   }
 
   /**
+   * Sinhala to English month mapping
+   */
+  sinhalaMontMap = {
+    'ජනවාරි': 'January',
+    'පෙබරවාරි': 'February',
+    'මාර්තු': 'March',
+    'අපේ‍්‍රේල්': 'April',
+    'අපි‍්‍රේල්': 'April',
+    'මැයි': 'May',
+    'ජුනි': 'June',
+    'ජුලි': 'July',
+    'අගෝස්තු': 'August',
+    'සැප්තැම්බර්': 'September',
+    'ඔක්තෝබර්': 'October',
+    'නොවැම්බර්': 'November',
+    'දෙසැම්බර්': 'December'
+  };
+
+  /**
    * Normalize month names to Title Case (e.g., "January", "May")
+   * Supports both English and Sinhala month names
    */
   normalizeMonth(month) {
     if (!month) return new Date().toLocaleString('en-US', { month: 'long' });
     
-    // Remove year if present (e.g. "May 2024" -> "May")
     const cleanMonth = month.split(/\s+/)[0].trim();
-    
     if (!cleanMonth) return new Date().toLocaleString('en-US', { month: 'long' });
     
+    // Check if it's a Sinhala month name
+    if (this.sinhalaMontMap[cleanMonth]) {
+      return this.sinhalaMontMap[cleanMonth];
+    }
+    
+    // Check if it matches Sinhala month partially (case-insensitive for Latin characters)
+    const lowerMonth = cleanMonth.toLowerCase();
+    for (const [sinhala, english] of Object.entries(this.sinhalaMontMap)) {
+      if (sinhala.toLowerCase() === lowerMonth) {
+        return english;
+      }
+    }
+    
+    // Default: English month name - just title case
     return cleanMonth.charAt(0).toUpperCase() + cleanMonth.slice(1).toLowerCase();
   }
 

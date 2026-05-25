@@ -91,7 +91,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   const existing = await dbGet('SELECT * FROM students WHERE id = ? AND tutor_id = ?', [req.params.id, req.tutor.id]);
   if (!existing) return res.status(404).json({ error: 'Student not found' });
-  const { name, phone, grade, school, parent_name, parent_phone, address, monthly_fee, status, notes, whatsapp_id } = req.body;
+  const { name, phone, grade, school, parent_name, parent_phone, address, monthly_fee, status, notes, whatsapp_id, pending_month } = req.body;
   let normalizedPhone = null;
   if (phone) {
     try {
@@ -100,8 +100,17 @@ router.put('/:id', async (req, res) => {
       normalizedPhone = null;
     }
   }
-  await dbRun(`UPDATE students SET name=COALESCE(?,name),phone=COALESCE(?,phone),normalized_phone=CASE WHEN ? IS NOT NULL THEN ? ELSE normalized_phone END,grade=COALESCE(?,grade),school=COALESCE(?,school),parent_name=COALESCE(?,parent_name),parent_phone=COALESCE(?,parent_phone),address=COALESCE(?,address),monthly_fee=COALESCE(?,monthly_fee),status=COALESCE(?,status),notes=COALESCE(?,notes),whatsapp_id=COALESCE(?,whatsapp_id),updated_at=CURRENT_TIMESTAMP WHERE id=? AND tutor_id=?`,
-    [name||null,phone||null,phone||null,normalizedPhone||null,grade||null,school||null,parent_name||null,parent_phone||null,address||null,monthly_fee??null,status||null,notes||null,whatsapp_id||null,req.params.id,req.tutor.id]);
+  // Normalize Sinhala month names to English (e.g., "මැයි" → "May")
+  let normalizedMonth = pending_month;
+  if (pending_month) {
+    try {
+      normalizedMonth = normalizationService.normalizeMonth(pending_month);
+    } catch (e) {
+      normalizedMonth = pending_month;
+    }
+  }
+  await dbRun(`UPDATE students SET name=COALESCE(?,name),phone=COALESCE(?,phone),normalized_phone=CASE WHEN ? IS NOT NULL THEN ? ELSE normalized_phone END,grade=COALESCE(?,grade),school=COALESCE(?,school),parent_name=COALESCE(?,parent_name),parent_phone=COALESCE(?,parent_phone),address=COALESCE(?,address),monthly_fee=COALESCE(?,monthly_fee),status=COALESCE(?,status),notes=COALESCE(?,notes),whatsapp_id=COALESCE(?,whatsapp_id),pending_month=COALESCE(?,pending_month),updated_at=CURRENT_TIMESTAMP WHERE id=? AND tutor_id=?`,
+    [name||null,phone||null,phone||null,normalizedPhone||null,grade||null,school||null,parent_name||null,parent_phone||null,address||null,monthly_fee??null,status||null,notes||null,whatsapp_id||null,normalizedMonth||null,req.params.id,req.tutor.id]);
   
   const student = await dbGet('SELECT * FROM students WHERE id = ?', [req.params.id]);
 
