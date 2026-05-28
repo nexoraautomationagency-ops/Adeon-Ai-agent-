@@ -637,10 +637,10 @@ Return STRICT JSON ONLY:
       const SCHEDULE_TIME = ['time', 'kawadada', 'keeyatada', 'keeyatda', 'thiyenne', 'thiyed', 'thiyen', 'thiyenawa', 'thiyenawada', 'welawa', 'welawada', 'dawasa', 'end', 'start', 'පන්ති', 'කවදද', 'වේලාව', 'කීයද', 'කීයටද'];
       const SCHEDULE_CLASS = ['class', 'grade', 'theory', 'revision'];
       const isLocationQuery = ['koheda', 'kohed', 'location', 'where', 'place', 'කොහෙද', 'kohetada', 'thana'].some(k => lowPrompt.includes(k));
-      
+
       if (isLocationQuery) {
         const locationFaq = await dbGet("SELECT content FROM knowledge_base WHERE (content ILIKE '%location%' OR content ILIKE '%physical%') AND content ILIKE '%map%' AND tutor_id = ? LIMIT 1", [tutorId])
-                         || await dbGet("SELECT content FROM knowledge_base WHERE (content ILIKE '%location%' OR content ILIKE '%physical%') AND tutor_id = ? LIMIT 1", [tutorId]);
+          || await dbGet("SELECT content FROM knowledge_base WHERE (content ILIKE '%location%' OR content ILIKE '%physical%') AND tutor_id = ? LIMIT 1", [tutorId]);
         if (locationFaq && locationFaq.content) {
           return {
             text: locationFaq.content,
@@ -682,7 +682,7 @@ Return STRICT JSON ONLY:
 
       // Check if student asks whether they are approved / added to class/group
       const isApprovalCheck = /(approve|approved|am i|am I|accepted|status.*(approve|added)|add welada|add wela|added|am i added|am I added|add karalada|add karanawada)|(class|group|clz|grp).*(add|join|welada|added|karanawada|karalada|wela|enroll|register)|(add|join|welada|added|karanawada|karalada|wela|enroll|register).*(class|group|clz|grp)/i;
-      
+
       if (isApprovalCheck.test(lowPrompt)) {
         // 1. If student already active/paid/registered
         if (studentContext.studentStatus === 'active' || studentContext.paymentStatus === 'paid' || ['REGISTERED'].includes(studentContext.state)) {
@@ -1011,12 +1011,12 @@ Payment Rules:
 ⭕ Class fee payment receipt එකේ ${finalName}, ${finalPhone}, ${finalMonth}, ${finalGrade} කියන details pen එකෙන් ලියලා එවීම අනිවාර්යයි.
 එසේ නොමැති slips accept කරන්නේ නැහැ.
  
-🪯❌ Online Payment කරනවා නම්, payment කරන වෙලාවේ Description / Remark වලට class එකට සම්බන්ධ වෙන WhatsApp Number එක දාන්න.
+❌ Online Payment කරනවා නම්, payment කරන වෙලාවේ Description / Remark වලට class එකට සම්බන්ධ වෙන WhatsApp Number එක දාන්න.
 එසේ නොමැති payments accept කරන්නේ නැහැ.
  
-📝❌ Tippex කරපු, කුරුටු ගාපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ.
+❌ Tippex කරපු, කුරුටු ගාපු හෝ පැහැදිලි නැති receipts භාරගන්නේ නැහැ.
  
-📍🖊️ Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
+🖊️ Details ලියද්දී වැරදුනොත්, single line එකකින් cut කරලා නිවැරදි කරන්න.
  
 ${receiptInstruction}`;
   }
@@ -1035,7 +1035,7 @@ ${receiptInstruction}`;
       };
 
       const normalizationService = require('./normalization');
-      
+
       const name = cleanExtracted(data.name);
       const grade = cleanExtracted(data.grade);
       const school = cleanExtracted(data.school);
