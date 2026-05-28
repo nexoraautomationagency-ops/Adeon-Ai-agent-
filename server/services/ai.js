@@ -103,7 +103,7 @@ class AIService {
     const low = lowPrompt || '';
     if (/sirge|sir ge|sir.*detail|teacher|tutor.*detail|guru/i.test(low)) return false;
     return /mage detail|my detail|mage vistara|my profile|mage details|my details|profile eka/i.test(low) ||
-      (/(^|\s)(mage|my|mata)(\s|$)/.test(low) && /detail|vistara|profile|kiyn|kiyanna/i.test(low));
+      (/(^|\s)(mage|my)(\s|$)/.test(low) && /detail|vistara|profile|kiyn|kiyanna/i.test(low));
   }
 
   _isTutorInquiry(lowPrompt) {
