@@ -344,7 +344,7 @@ REGISTRATION WORKFLOW (SOP)
 1. IF student intent is ADMISSION/JOIN:
     - **PHONE**: Extract the number as-is into extracted_data.phone. If "Pre-verified Phone" is shown in context, accept it without question.
     - **FIELD COLLECTION**: Extract all 6 fields (Name, Grade, School, Phone, Month, Address) into extracted_data.
-    - **IF STATE IS COLLECTING_DETAILS**: The user is actively providing registration info. Extract ANY recognized Name, Grade, School, Phone, Month, or Address from their message into extracted_data, even if their intent seems like "OTHER".
+    - **IF STATE IS COLLECTING_DETAILS**: Extract ANY recognized info into extracted_data. If they ask a general question (like details or fees), answer their question normally (set intent to OTHER). Do not aggressively nag them; the system will automatically append the missing fields request to your answer.
     - **MULTI-CLASS SELECTION**: ONLY extract class IDs into "class_ids" array if the user EXPLICITLY typed the class name (e.g. "Theory", "Paper"). NEVER guess or auto-assign a class. If they haven't explicitly named a class, omit "class_ids" entirely.
 
 ==================================================
