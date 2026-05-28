@@ -636,7 +636,21 @@ Return STRICT JSON ONLY:
 
       const SCHEDULE_TIME = ['time', 'kawadada', 'keeyatada', 'keeyatda', 'thiyenne', 'thiyed', 'thiyen', 'thiyenawa', 'thiyenawada', 'welawa', 'welawada', 'dawasa', 'end', 'start', 'පන්ති', 'කවදද', 'වේලාව', 'කීයද', 'කීයටද'];
       const SCHEDULE_CLASS = ['class', 'grade', 'theory', 'revision'];
-      const isLocationQuery = ['koheda', 'kohed', 'location', 'where', 'place', 'කොහෙද'].some(k => lowPrompt.includes(k));
+      const isLocationQuery = ['koheda', 'kohed', 'location', 'where', 'place', 'කොහෙද', 'kohetada', 'thana'].some(k => lowPrompt.includes(k));
+      
+      if (isLocationQuery) {
+        const locationFaq = await dbGet("SELECT content FROM knowledge_base WHERE (content ILIKE '%location%' OR content ILIKE '%physical%') AND content ILIKE '%map%' AND tutor_id = ? LIMIT 1", [tutorId])
+                         || await dbGet("SELECT content FROM knowledge_base WHERE (content ILIKE '%location%' OR content ILIKE '%physical%') AND tutor_id = ? LIMIT 1", [tutorId]);
+        if (locationFaq && locationFaq.content) {
+          return {
+            text: locationFaq.content,
+            intent: 'OTHER',
+            action: 'RESPOND',
+            data: {}
+          };
+        }
+      }
+
       const isScheduleQuery = !isLocationQuery && (SCHEDULE_DIRECT.some(k => lowPrompt.includes(k)) ||
         (SCHEDULE_TIME.some(k => lowPrompt.includes(k)) && (
           SCHEDULE_CLASS.some(k => lowPrompt.includes(k)) || /\b\d+\b/.test(lowPrompt) || !!(studentContext?.grade)
