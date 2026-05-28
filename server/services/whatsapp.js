@@ -1199,6 +1199,12 @@ Show this help message.`;
     this.isProcessingQueue = false;
   }
 
+  clearAdminCache(tutorId = 1) {
+    this._adminCache.delete(tutorId);
+    this._lastAdminUpdate.delete(tutorId);
+    console.log(`[WhatsApp] 🧹 Admin cache cleared for tutor ${tutorId}`);
+  }
+
   async _getAdminPhones(tutorId) {
     const now = Date.now();
     const cacheKey = tutorId;

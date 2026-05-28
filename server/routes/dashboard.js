@@ -140,11 +140,15 @@ router.post('/admins', async (req, res) => {
   const { phone } = req.body;
   if (!phone) return res.status(400).json({ error: 'Phone number required' });
   await dbRun('INSERT INTO tutor_admins (tutor_id, phone) VALUES (?,?) ON CONFLICT DO NOTHING', [req.tutor.id, phone]);
+  const whatsappService = require('../services/whatsapp');
+  if (typeof whatsappService.clearAdminCache === 'function') whatsappService.clearAdminCache(req.tutor.id);
   res.json({ success: true });
 });
 
 router.delete('/admins/:id', async (req, res) => {
   await dbRun('DELETE FROM tutor_admins WHERE id = ? AND tutor_id = ?', [req.params.id, req.tutor.id]);
+  const whatsappService = require('../services/whatsapp');
+  if (typeof whatsappService.clearAdminCache === 'function') whatsappService.clearAdminCache(req.tutor.id);
   res.json({ success: true });
 });
 

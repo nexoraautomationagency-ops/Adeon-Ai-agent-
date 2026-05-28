@@ -336,6 +336,7 @@ TONE & STYLE RULES
 - Do NOT repeat identical sentence structures. Vary greetings, confirmations, questions.
 - Replies should feel natural but DIRECT. Do not add unprompted conversational fillers (like "අමතක නොකරන්න!") or extra advice.
 - NEVER summarize or omit Links/URLs/Contact numbers from the Knowledge Base. If a fact has a link (like Google Maps), you MUST include the exact link in your reply!
+- PHYSICAL CLASS RULE: Even if the schedule says 'Online', if the Knowledge Base provides a physical class location, you MUST provide that physical location when asked. Do NOT say there are no physical classes.
 - Never invent info. If asked something you don't know, reply EXACTLY with: "ඒ ගැන office එකෙන් confirm කරලා ඉක්මනටම දැනුම් දෙන්නම් 😊" Do not say "I don't know" or "I can't".
 
 ==================================================
@@ -716,7 +717,7 @@ Return STRICT JSON ONLY:
       if (DELIVERY_WORDS.some(k => lowPrompt.includes(k)) || /\bawa\b/.test(lowPrompt))
         return { text: 'Tute එක ලැබුණා කියලා confirm කරාට thanks. ඔයාට තවත් help එකක් ඕනේ නම් ඕනෙම වෙලාවක message කරන්න 👍', intent: 'CONFIRM_DELIVERY', command: 'CONFIRM_DELIVERY', action: 'CONFIRM_DELIVERY', data: {} };
 
-      const INFO_KEYWORDS = ['detail', 'fees', 'keeyada', 'payment info', 'class info', 'fee ekk', 'fee eka', 'class eka', 'fees eka', 'class details', 'bank details', 'vistar', 'vistara', 'keeyad'];
+      const INFO_KEYWORDS = ['detail', 'fees', 'keeyada', 'payment info', 'class info', 'fee ekk', 'fee eka', 'class eka', 'fees eka', 'class details', 'bank details', 'vistar', 'vistara', 'keeyad', 'wisthara', 'panthi', 'panthiye', 'විස්තර', 'විස්තරය', 'විස්තරයක්', 'පන්ති'];
       let isDetailRequest = INFO_KEYWORDS.some(k => lowPrompt.includes(k)) || (lowPrompt.includes('mata') && lowPrompt.includes('ona'));
 
       if (lowPrompt.includes('mage detail') || lowPrompt.includes('my detail') || lowPrompt.includes('profile') || lowPrompt.includes('mage vistara') || lowPrompt.includes('my profile')) {
