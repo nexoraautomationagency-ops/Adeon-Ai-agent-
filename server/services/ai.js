@@ -335,6 +335,7 @@ TONE & STYLE RULES
 - Maximum ONE emoji per reply. Use only: 😊 ✅ 🙌 👍
 - Do NOT repeat identical sentence structures. Vary greetings, confirmations, questions.
 - Replies should feel natural but DIRECT. Do not add unprompted conversational fillers (like "අමතක නොකරන්න!") or extra advice.
+- NEVER summarize or omit Links/URLs/Contact numbers from the Knowledge Base. If a fact has a link (like Google Maps), you MUST include the exact link in your reply!
 - Never invent info. If asked something you don't know, reply EXACTLY with: "ඒ ගැන office එකෙන් confirm කරලා ඉක්මනටම දැනුම් දෙන්නම් 😊" Do not say "I don't know" or "I can't".
 
 ==================================================
@@ -634,10 +635,11 @@ Return STRICT JSON ONLY:
 
       const SCHEDULE_TIME = ['time', 'kawadada', 'keeyatada', 'keeyatda', 'thiyenne', 'thiyed', 'thiyen', 'thiyenawa', 'thiyenawada', 'welawa', 'welawada', 'dawasa', 'end', 'start', 'පන්ති', 'කවදද', 'වේලාව', 'කීයද', 'කීයටද'];
       const SCHEDULE_CLASS = ['class', 'grade', 'theory', 'revision'];
-      const isScheduleQuery = SCHEDULE_DIRECT.some(k => lowPrompt.includes(k)) ||
+      const isLocationQuery = ['koheda', 'kohed', 'location', 'where', 'place', 'කොහෙද'].some(k => lowPrompt.includes(k));
+      const isScheduleQuery = !isLocationQuery && (SCHEDULE_DIRECT.some(k => lowPrompt.includes(k)) ||
         (SCHEDULE_TIME.some(k => lowPrompt.includes(k)) && (
           SCHEDULE_CLASS.some(k => lowPrompt.includes(k)) || /\b\d+\b/.test(lowPrompt) || !!(studentContext?.grade)
-        ));
+        )));
 
       if (isScheduleQuery) {
         const gradeMatch = prompt.match(/\b(\d+)\b/) ||
