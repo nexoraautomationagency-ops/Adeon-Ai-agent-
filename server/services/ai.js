@@ -663,34 +663,22 @@ Return STRICT JSON ONLY:
         (['complain', 'aulak', 'awul'].some(k => lowPrompt.includes(k)) && !['na', 'ne', 'naha'].some(k => lowPrompt.includes(k)));
       if (isComplaint) return { text: 'මම මේ පණිවිඩය Sir ට යැව්වා 😊 Sir ඉක්මනටම ඔයාට message එකක් යවයි.', intent: 'COMPLAIN', command: 'ESCALATE', action: 'ESCALATE', data: {} };
 
-      if (studentContext.hasPendingPayment && studentContext.receiptUploaded) {
-        const classStatusRequest = /class.*(add|join|welada|added|add karala|add karan|add karala|add karala|add karanawada|add wela|added|welada|nidahasa|enroll|register)/i;
-        const statusCheck = /(add|join|welada|added|enroll|register).*(class)|class.*(add|join|welada|added|enroll|register)/i;
-        if (classStatusRequest.test(lowPrompt) || statusCheck.test(lowPrompt)) {
-          return {
-            text: 'ඔයාගේ receipt එක ලැබුණා 😊 ඒක verify කරලා 24 පැය ඇතුළත class එකට add කරලා confirmation message එකක් දෙන්නම්.',
-            intent: 'PAYMENT',
-            action: 'RESPOND',
-            data: {}
-          };
-        }
-      }
-
-      // If student asks whether they are approved / added, reply with current status
-      const isApprovalCheck = /(approve|approved|am i|am I|accepted|status.*(approve|added)|add welada|add wela|added|am i added|am I added)/i;
+      // Check if student asks whether they are approved / added to class/group
+      const isApprovalCheck = /(approve|approved|am i|am I|accepted|status.*(approve|added)|add welada|add wela|added|am i added|am I added|add karalada|add karanawada)|(class|group|clz|grp).*(add|join|welada|added|karanawada|karalada|wela|enroll|register)|(add|join|welada|added|karanawada|karalada|wela|enroll|register).*(class|group|clz|grp)/i;
+      
       if (isApprovalCheck.test(lowPrompt)) {
-        // If student already active/paid/registered
+        // 1. If student already active/paid/registered
         if (studentContext.studentStatus === 'active' || studentContext.paymentStatus === 'paid' || ['REGISTERED'].includes(studentContext.state)) {
           return {
-            text: 'ඔයා approved වෙලා තියෙනවා ✅ ඔයා group එකට add කරලා තියෙනවා. Approval/Group notification ලැබෙනවා නම් ඔයාට message එක යවයි.',
+            text: 'ඔයා දැනටමත් approved වෙලා group එකට add කරලා තියෙන්නේ ✅',
             intent: 'OTHER',
             action: 'RESPOND',
             data: {}
           };
         }
 
-        // If receipt uploaded and pending verification
-        if (studentContext.receiptUploaded || studentContext.hasPendingPayment) {
+        // 2. If receipt uploaded and pending verification
+        if (studentContext.receiptUploaded) {
           return {
             text: 'ඔයාගේ receipt එක අපිට ලැබිලා තියෙනවා 😊 Admin verify කරලා 24 පැය ඇතුළත approval දීලා group එකට add කරලා confirmation message එකක් එවන්නම්.',
             intent: 'PAYMENT',
@@ -699,9 +687,19 @@ Return STRICT JSON ONLY:
           };
         }
 
-        // No receipt / not paid
+        // 3. If registration done but no receipt uploaded yet (has pending payment)
+        if (studentContext.hasPendingPayment) {
+          return {
+            text: 'group එකට add කරන්න payment receipt එකක් එවන්න. Verify කරලා add කරන්නම් 😊',
+            intent: 'PAYMENT',
+            action: 'RESPOND',
+            data: {}
+          };
+        }
+
+        // 4. No receipt / not paid / not registered
         return {
-          text: 'ඔයාගේ approval status නොපවත්වයි — ඔබට approval සඳහා receipt යවන්න (e.g., 0771234567) හෝ Sir ට message කරන්න.',
+          text: 'ඔයා තවම පන්තියට register වී නොමැත. කරුණාකර payment receipt එකක් එවන්න හෝ Sir ට message කරන්න.',
           intent: 'OTHER',
           action: 'RESPOND',
           data: {}
