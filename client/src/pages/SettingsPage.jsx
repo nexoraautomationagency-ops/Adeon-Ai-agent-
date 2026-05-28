@@ -270,8 +270,9 @@ export default function SettingsPage() {
         </div>
       </div>
     )}
-    <div className="card mb-4">
-      <h3 className="card-title mb-4">👥 Secondary Admins (WhatsApp)</h3>
+    {tutor?.role === 'developer' && (
+      <div className="card mb-4">
+        <h3 className="card-title mb-4">👥 Secondary Admins (WhatsApp)</h3>
       <p className="text-sm text-muted mb-4">These phone numbers can also control the bot via WhatsApp commands.</p>
       <div className="flex gap-2 mb-4">
         <input className="form-input" placeholder="e.g. 94771234567" value={newAdminPhone} onChange={e=>setNewAdminPhone(e.target.value)}/>
@@ -332,6 +333,7 @@ export default function SettingsPage() {
         </table>
       </div>
     </div>
+    )}
 
     <div className="card mb-4">
       <h3 className="card-title mb-4">🔗 WhatsApp Group Mapping</h3>
