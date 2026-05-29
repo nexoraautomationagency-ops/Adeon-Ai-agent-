@@ -1150,7 +1150,25 @@ ${receiptInstruction}`;
   }
 
   async generateCustomMessage(instruction, chatId = null, tutorId = 1) {
-    return this.processMessage(instruction, chatId, tutorId);
+    const messages = [
+      { role: "system", content: "You are a helpful AI assistant for a tuition class admin. Your task is to generate or rephrase messages according to the user's instructions. Respond ONLY with the final text in the requested language (Sinhala/Singlish/English). Do not include any explanations, quotes, or JSON formatting." },
+      { role: "user", content: instruction }
+    ];
+
+    try {
+      const response = await this._safeAICall(messages, { 
+        maxTokens: 500,
+        temperature: 0.7 
+      });
+      
+      const text = response?.choices?.[0]?.message?.content?.trim() || '';
+      const tokens = response?.usage?.total_tokens || 0;
+      
+      return { text, tokens, intent: 'GENERAL', fromCache: false };
+    } catch (err) {
+      console.error('[AI] Custom generation error:', err);
+      throw err;
+    }
   }
 
   async generatePaymentReminder(studentName, amount, month, tutorId = 1) {
