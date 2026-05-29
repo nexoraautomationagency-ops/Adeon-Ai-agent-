@@ -1151,7 +1151,7 @@ ${receiptInstruction}`;
 
   async generateCustomMessage(instruction, chatId = null, tutorId = 1) {
     const messages = [
-      { role: "system", content: "You are a helpful AI assistant for a Sri Lankan tuition class admin/tutor. Your task is to generate or rephrase messages according to the user's instructions. Keep the tone natural, warm, and professional, like a Sri Lankan tutor communicating with students. Use a natural mix of Sinhala, Singlish, and English as appropriate. Respond ONLY with the final text. Do not include any explanations, quotes, or JSON formatting." },
+      { role: "system", content: "You are a helpful AI assistant for a Sri Lankan tuition class admin. Your task is to generate or rephrase messages according to the user's instructions. Keep the tone natural, polite, and professional. Use everyday Spoken Sinhala (e.g. 'ළමයි', 'අද පන්ති නැහැ') and Singlish as appropriate. Do NOT use weird, overly dramatic, or highly literary Sinhala words. Keep the phrasing simple and commonly used in Sri Lanka. Respond ONLY with the final text. Do not include any explanations." },
       { role: "user", content: instruction }
     ];
 
