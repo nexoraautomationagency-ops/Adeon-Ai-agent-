@@ -55,8 +55,8 @@ router.get('/settings', async (req, res) => {
     await dbRun('INSERT INTO settings (tutor_id) VALUES (?)', [req.tutor.id]);
     settings = await dbGet('SELECT * FROM settings WHERE tutor_id=?', [req.tutor.id]);
   }
-  const tutor = await dbGet('SELECT institute_name FROM tutors WHERE id=?', [req.tutor.id]);
-  res.json({ settings: { ...settings, institute_name: tutor ? tutor.institute_name : '' } });
+  const tutor = await dbGet('SELECT institute_name, phone FROM tutors WHERE id=?', [req.tutor.id]);
+  res.json({ settings: { ...settings, institute_name: tutor ? tutor.institute_name : '', tutor_phone: tutor ? tutor.phone : '' } });
 });
 
 router.put('/settings', async (req, res) => {
@@ -64,12 +64,12 @@ router.put('/settings', async (req, res) => {
     auto_reply_enabled, auto_reply_message, welcome_message, 
     payment_reminder_enabled, payment_reminder_day, ai_tone, 
     bank_name, bank_account, bank_branch, bank_account_holder,
-    institute_name, tutor_name, basic_fee, tute_fee, final_grade
+    institute_name, tutor_name, basic_fee, tute_fee, final_grade, tutor_phone
   } = req.body;
 
-  // Update tutor institute name if provided
-  if (institute_name) {
-    await dbRun('UPDATE tutors SET institute_name=? WHERE id=?', [institute_name, req.tutor.id]);
+  // Update tutor institute name and phone if provided
+  if (institute_name !== undefined || tutor_phone !== undefined) {
+    await dbRun('UPDATE tutors SET institute_name=COALESCE(?,institute_name), phone=COALESCE(?,phone) WHERE id=?', [institute_name, tutor_phone, req.tutor.id]);
   }
 
   await dbRun(`UPDATE settings SET 

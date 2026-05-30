@@ -141,6 +141,11 @@ export default function SettingsPage() {
           <input className="form-input" value={settings.tutor_name||''} onChange={e=>setSettings({...settings,tutor_name:e.target.value})} placeholder="e.g. Sir Saman"/>
         </div>
       </div>
+      <div className="form-group" style={{marginTop: 16}}>
+        <label className="form-label">Tutor Phone Number (Primary)</label>
+        <input className="form-input" value={settings.tutor_phone||''} onChange={e=>setSettings({...settings,tutor_phone:e.target.value})} placeholder="e.g. 0771234567"/>
+        <p className="text-xs text-muted mt-1">This number will be shared with students when they ask for Sir's contact details.</p>
+      </div>
     </div>
     <div className="card mb-4">
       <h3 className="card-title mb-4">💰 Global Fee Configuration</h3>
