@@ -37,7 +37,7 @@ class AIService {
     if (this._isReceiptWillSend(lowPrompt)) return true;
     if (this._isJoinInquiryCore(lowPrompt)) return true;
     if (llmIntent === 'SCHEDULE' || llmIntent === 'PAYMENT') return true;
-    if (/\b(today|ada)\b/.test(lowPrompt) && /\b(class|clz|lesson|පන්ති)\b/.test(lowPrompt)) return true;
+    if (/\b(today|ada|tomorrow|heta)\b/.test(lowPrompt) && /\b(class|clz|lesson|පන්ති)\b/.test(lowPrompt)) return true;
     if (/is there.*class|class.*thiyenawada|class.*thiyeda|next class|recording|link eka|class nadda/i.test(lowPrompt)) return true;
     return false;
   }
@@ -53,7 +53,7 @@ class AIService {
 
   _isScheduleTodayQuery(lowPrompt) {
     if (!lowPrompt) return false;
-    if (/\b(today|ada)\b/.test(lowPrompt) && /\b(class|clz|lesson|පන්ති)\b/.test(lowPrompt)) return true;
+    if (/\b(today|ada|tomorrow|heta)\b/.test(lowPrompt) && /\b(class|clz|lesson|පන්ති)\b/.test(lowPrompt)) return true;
     if (/is there.*class|class.*thiyenawada|class.*thiyeda|class ekak thiyenawada/i.test(lowPrompt)) return true;
     return false;
   }
@@ -596,15 +596,27 @@ Return STRICT JSON ONLY:
       }
 
       if (this._isScheduleTodayQuery(lowPrompt)) {
-        const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        const isTomorrow = /\b(heta|tomorrow)\b/i.test(lowPrompt);
+        const targetDate = new Date();
+        if (isTomorrow) targetDate.setDate(targetDate.getDate() + 1);
+        const targetDayName = targetDate.toLocaleDateString('en-US', { weekday: 'long' });
+        const dayLabel = isTomorrow ? `හෙට (${targetDayName})` : `අද (${targetDayName})`;
+
+        const gradeMatch = prompt.match(/\b(\d+)\b/) ||
+          (studentContext?.grade ? studentContext.grade.toString().match(/\b(\d+)\b/) : null);
+        const requestedGrade = gradeMatch ? gradeMatch[1] : null;
+
         const allClasses = tutorContext.classes || [];
-        const todayClasses = allClasses.filter(c =>
-          (c.day_of_week || '').toLowerCase() === todayName.toLowerCase()
-        );
+        const todayClasses = allClasses.filter(c => {
+          const isTargetDay = (c.day_of_week || '').toLowerCase() === targetDayName.toLowerCase();
+          const isCorrectGrade = requestedGrade ? c.grade.toString().replace(/\D/g, '') === requestedGrade.replace(/\D/g, '') : true;
+          return isTargetDay && isCorrectGrade;
+        });
+
         if (todayClasses.length > 0) {
-          const classLines = todayClasses.map(c => this._formatScheduleClassLine(c, true)).join('\n\n');
+          const classLines = todayClasses.map(c => this._formatScheduleClassLine(c, !isTomorrow)).join('\n\n');
           return {
-            text: `අද (${todayName}) class තියෙනවා 😊\n\n${classLines}`,
+            text: `${dayLabel} class තියෙනවා 😊\n\n${classLines}`,
             intent: 'SCHEDULE',
             action: 'RESPOND',
             command: 'RESPOND',
@@ -612,7 +624,7 @@ Return STRICT JSON ONLY:
           };
         }
         return {
-          text: `අද (${todayName}) database එකේ class එකක් schedule නැහැ 😊 Full timetable එකට "schedule" කියලා message කරන්න.`,
+          text: `${dayLabel} database එකේ class එකක් schedule නැහැ 😊 Full timetable එකට "schedule" කියලා message කරන්න.`,
           intent: 'SCHEDULE',
           action: 'RESPOND',
           command: 'RESPOND',
