@@ -624,7 +624,7 @@ Return STRICT JSON ONLY:
           };
         }
         return {
-          text: `${dayLabel} database එකේ class එකක් schedule නැහැ 😊 Full timetable එකට "schedule" කියලා message කරන්න.`,
+          text: `${dayLabel} class එකක් schedule නැහැ 😊 Full timetable එකට "schedule" කියලා message කරන්න.`,
           intent: 'SCHEDULE',
           action: 'RESPOND',
           command: 'RESPOND',
