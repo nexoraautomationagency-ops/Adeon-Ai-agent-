@@ -693,6 +693,27 @@ Return STRICT JSON ONLY:
         (['complain', 'aulak', 'awul'].some(k => lowPrompt.includes(k)) && !['na', 'ne', 'naha'].some(k => lowPrompt.includes(k)));
       if (isComplaint) return { text: 'මම මේ පණිවිඩය Sir ට යැව්වා 😊 Sir ඉක්මනටම ඔයාට message එකක් යවයි.', intent: 'COMPLAIN', command: 'ESCALATE', action: 'ESCALATE', data: {} };
 
+      // Prevent already paid students from getting payment instructions again
+      const isPaymentIntent = /(payment|salli|fee|pay).*(karanna|karanne|danna|danne|gewanna|gewanne|kohomada|kohmada)/i.test(lowPrompt) || /(karanna|karanne|danna|danne|gewanna|gewanne|kohomada|kohmada).*(payment|salli|fee|pay)/i.test(lowPrompt);
+      if (isPaymentIntent && studentContext.id) {
+        const monthMatch = lowPrompt.match(/(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec|ජනවාරි|පෙබරවාරි|මාර්තු|අප්‍රේල්|මැයි|ජූනි|ජූලි|අගෝස්තු|සැප්තැම්බර්|ඔක්තෝබර්|නොවැම්බර්|දෙසැම්බර්)/i);
+        if (monthMatch) {
+          const normalizationService = require('./normalization');
+          const requestedMonth = normalizationService.normalizeMonth(monthMatch[1]);
+          if (requestedMonth) {
+            const existingPayment = await dbGet('SELECT status FROM payments WHERE student_id = ? AND month = ? AND year = ?', [studentContext.id, requestedMonth, new Date().getFullYear()]);
+            if (existingPayment && existingPayment.status === 'paid') {
+              return {
+                text: `ඔයා දැනටමත් ${requestedMonth} month එකට payment කරලා approve වෙලා තියෙන්නේ ✅\nඅලුතෙන් payment එකක් කරන්න අවශ්‍ය නැහැ 😊`,
+                intent: 'OTHER',
+                action: 'RESPOND',
+                data: {}
+              };
+            }
+          }
+        }
+      }
+
       // Check if student asks whether they are approved / added to class/group
       const isApprovalCheck = /(approve|approved|am i|am I|accepted|status.*(approve|added)|add welada|add wela|added|am i added|am I added|add karalada|add karanawada)|(class|group|clz|grp).*(add|join|welada|added|karanawada|karalada|wela|enroll|register)|(add|join|welada|added|karanawada|karalada|wela|enroll|register).*(class|group|clz|grp)/i;
 
@@ -1169,14 +1190,14 @@ ${receiptInstruction}`;
     ];
 
     try {
-      const response = await this._safeAICall(messages, { 
+      const response = await this._safeAICall(messages, {
         maxTokens: 500,
-        temperature: 0.7 
+        temperature: 0.7
       });
-      
+
       const text = response?.choices?.[0]?.message?.content?.trim() || '';
       const tokens = response?.usage?.total_tokens || 0;
-      
+
       return { text, tokens, intent: 'GENERAL', fromCache: false };
     } catch (err) {
       console.error('[AI] Custom generation error:', err);
