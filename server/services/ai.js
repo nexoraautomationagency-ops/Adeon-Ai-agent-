@@ -664,7 +664,7 @@ Return STRICT JSON ONLY:
         }
       }
 
-      const isScheduleQuery = !isLocationQuery && (SCHEDULE_DIRECT.some(k => lowPrompt.includes(k)) ||
+      const isScheduleQuery = !isLocationQuery && !/record|link/i.test(lowPrompt) && (SCHEDULE_DIRECT.some(k => lowPrompt.includes(k)) ||
         (SCHEDULE_TIME.some(k => lowPrompt.includes(k)) && (
           SCHEDULE_CLASS.some(k => lowPrompt.includes(k)) || /\b\d+\b/.test(lowPrompt) || !!(studentContext?.grade)
         )));
