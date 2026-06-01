@@ -733,7 +733,7 @@ Show this help message.`;
         const updatedUrls = payment.receipt_url ? `${payment.receipt_url},${publicUrl}` : publicUrl;
         await dbRun("UPDATE payments SET receipt_url = ?, status = 'pending' WHERE id = ?", [updatedUrls, payment.id]);
       } else {
-        await dbRun("INSERT INTO payments (tutor_id, student_id, amount, month, year, status, receipt_url) VALUES (?, ?, ?, ?, ?, 'pending', ?)", [tutorId, student.id, 0, paymentMonth, currentYear, publicUrl]);
+        await dbRun("INSERT INTO payments (tutor_id, student_id, amount, month, year, status, receipt_url) VALUES (?, ?, ?, ?, ?, 'pending', ?)", [tutorId, student.id, student.monthly_fee || 0, paymentMonth, currentYear, publicUrl]);
       }
 
       const studentInfo = await dbGet('SELECT name, phone FROM students WHERE id = ?', [student.id]);
