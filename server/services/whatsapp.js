@@ -444,7 +444,7 @@ Show this help message.`;
             }
           }
 
-          await dbRun("UPDATE students SET status = 'active' WHERE id = ?", [student.id]);
+          await dbRun("UPDATE students SET status = 'active', pending_month = NULL WHERE id = ?", [student.id]);
           const existingPayment = await dbGet('SELECT id, tutor_id, amount, month, year FROM payments WHERE student_id = ? AND month = ? AND year = ?', [student.id, month, year]);
           let payId;
           if (existingPayment) {

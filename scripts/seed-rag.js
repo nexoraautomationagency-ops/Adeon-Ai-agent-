@@ -1,6 +1,6 @@
 require('dotenv').config({ path: './server/.env' });
-const { supabase } = require('./server/db/connection');
-const aiService = require('./server/services/ai');
+const { supabase } = require('../server/db/connection');
+const aiService = require('../server/services/ai');
 
 async function seed() {
   const newEntries = [
@@ -26,8 +26,8 @@ async function seed() {
       category: 'STYLE',
       tutor_id: 2,
       content: 'Student: Address eka wenas karanna one\nAdmin: හරි 😊 අලුත් address එක එවන්න, මම update කරන්නම්.',
-      metadata: { 
-        intent: 'GENERAL', 
+      metadata: {
+        intent: 'GENERAL',
         source: 'Audit Remediation',
         student_message: 'Address eka wenas karanna one',
         ideal_reply: 'හරි 😊 අලුත් address එක එවන්න, මම update කරන්නම්.'
@@ -37,8 +37,8 @@ async function seed() {
       category: 'STYLE',
       tutor_id: 2,
       content: 'Student: Phone num eka change karanna one\nAdmin: හරි 😊 අලුත් number එක එවන්න, මම update කරන්නම්.',
-      metadata: { 
-        intent: 'GENERAL', 
+      metadata: {
+        intent: 'GENERAL',
         source: 'Audit Remediation',
         student_message: 'Phone num eka change karanna one',
         ideal_reply: 'හරි 😊 අලුත් number එක එවන්න, මම update කරන්නම්.'
@@ -62,7 +62,7 @@ async function seed() {
       console.error('Error generating embedding:', e.message);
     }
   }
-  
+
   console.log('Done!');
   process.exit(0);
 }

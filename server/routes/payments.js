@@ -43,7 +43,7 @@ async function handlePaymentSuccess(tutor, paymentId, studentId, month, year) {
     if (!student) return;
 
     // 1. Activate Student
-    await dbRun("UPDATE students SET status = 'active' WHERE id = ?", [student.id]);
+    await dbRun("UPDATE students SET status = 'active', pending_month = NULL WHERE id = ?", [student.id]);
 
     // 2. Auto-Enroll in Class (Fallback only if no classes exist)
     if (student.grade) {
