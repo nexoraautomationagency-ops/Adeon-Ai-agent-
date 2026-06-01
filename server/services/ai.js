@@ -177,6 +177,7 @@ class AIService {
   _isPaymentDoneClaim(lowPrompt) {
     const low = lowPrompt || '';
     if (/receipt.*(eww|yawan|yawann|denna|upload|photo)/i.test(low)) return false;
+    if (/(karanna|danna|gewanna|kohomada|one)/i.test(low)) return false;
     return /(mama|mage|me|mata).*(payment|salli|fee).*(kara|damma|un|kale|kare)|payment.*(kara|done|damma|kare)/i.test(low) ||
       /(salli|fee).*(damma|kara|un)/i.test(low);
   }
