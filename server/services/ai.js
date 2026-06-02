@@ -475,7 +475,7 @@ Return STRICT JSON ONLY:
       ]);
 
       const isRegistrationKeyword = /(join|class|register|admission|එන්න|සම්බන්ධ|පන්ති|regist|add)/i.test(prompt?.toLowerCase());
-      const isBasicGreeting = /^(hi|hello|hey|ayubowan|morning|evening|gm|ge|hi\s+admin|hello\s+admin|halo|ආයුබෝවන්|හෙලෝ|හෙල්ලෝ|සුභ\s*උදෑසනක්|good\s*morning|good\s*evening)[!?. ]*$/i.test(prompt?.trim());
+      const isBasicGreeting = /^(hi|hi sir|hello|hello sir|hey|ayubowan|morning|evening|gm|ge|hi\s+admin|hello\s+admin|halo|ආයුබෝවන්|හෙලෝ|හෙල්ලෝ|සුභ\s*උදෑසනක්|good\s*morning|good\s*evening)[!?. ]*$/i.test(prompt?.trim());
 
       if (isBasicGreeting && !isRegistrationKeyword) {
         const tutorName = tutorContext.tutor?.institute_name || 'class';
