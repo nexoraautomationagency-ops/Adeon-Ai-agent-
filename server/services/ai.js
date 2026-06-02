@@ -46,6 +46,7 @@ class AIService {
   _isJoinInquiry(lowPrompt, hasRegistrationPattern) {
     if (!lowPrompt) return false;
     if (this._isProfileInquiry(lowPrompt)) return false;
+    if (/left|remove|ayin|ain/i.test(lowPrompt)) return false; // Let RAG handle group re-entry
     // IMPORTANT: Don't skip join inquiry just because they mentioned grade/month/school
     // Students saying "join" should always get the detail collection prompt first
     return this._isJoinInquiryCore(lowPrompt);
@@ -115,6 +116,7 @@ class AIService {
 
   _hasCompleteRegistration(studentContext) {
     const s = studentContext || {};
+    if (s.studentStatus === 'active' || s.paymentStatus === 'paid' || s.state === 'REGISTERED' || s.state === 'WAITING_PAYMENT') return true;
     return !!(s.name && s.grade && s.school && s.phone && s.pending_month && s.address);
   }
 
@@ -717,7 +719,7 @@ Return STRICT JSON ONLY:
       // Check if student asks whether they are approved / added to class/group
       const isApprovalCheck = /(approve|approved|am i|am I|accepted|status.*(approve|added)|add welada|add wela|added|am i added|am I added|add karalada|add karanawada)|(class|group|clz|grp).*(add|join|welada|added|karanawada|karalada|wela|enroll|register)|(add|join|welada|added|karanawada|karalada|wela|enroll|register).*(class|group|clz|grp)/i;
 
-      if (isApprovalCheck.test(lowPrompt)) {
+      if (isApprovalCheck.test(lowPrompt) && !/left|remove|ayin|ain/i.test(lowPrompt)) {
         // 1. If student already active/paid/registered
         if (studentContext.studentStatus === 'active' || studentContext.paymentStatus === 'paid' || ['REGISTERED'].includes(studentContext.state)) {
           return {
@@ -824,7 +826,7 @@ Return STRICT JSON ONLY:
       let preVerifiedPhone = phoneMatch ? phoneMatch[1] : null;
       const anyNumberMatch = prompt.match(/(\d{7,15})/);
       const hasInvalidPhone = anyNumberMatch && !phoneMatch;
-      if (hasRegistrationPattern && studentContext.state !== 'COLLECTING_DETAILS') {
+      if (hasRegistrationPattern && studentContext.state !== 'COLLECTING_DETAILS' && !this._hasCompleteRegistration(studentContext)) {
         studentContext.state = 'COLLECTING_DETAILS';
         await this._setCollectingDetails(studentContext.id);
       }
@@ -880,7 +882,7 @@ Return STRICT JSON ONLY:
         (lastBotAskedForDetails && hasNewDetailInMessage)
       );
 
-      const isAlreadyRegistered = ['REGISTERED', 'WAITING_PAYMENT'].includes(studentContext.state);
+      const isAlreadyRegistered = ['REGISTERED', 'WAITING_PAYMENT'].includes(studentContext.state) || this._isStudentActive(studentContext);
 
       if (!hasAnyDetail && isCollecting) {
         result.action = 'RESPOND';
