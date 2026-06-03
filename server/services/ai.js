@@ -20,6 +20,13 @@ class AIService {
 
   _isJoinInquiryCore(lowPrompt) {
     if (!lowPrompt) return false;
+    
+    if (/link|recording/i.test(lowPrompt)) return false;
+
+    // EXCLUSION: If they are saying they CANNOT join or there is a problem, let AI handle it.
+    const hasProblem = /(bane|bahe|baha|baa|amarui|wada n|error|awul|awl|awlak|බෑ|බැහැ|අමාරුයි|වැඩ නෑ)/i.test(lowPrompt);
+    if (hasProblem) return false;
+
     const wantsJoin = /(join|register|admission|regist|එන්න|සම්බන්ධ|එකතු)/i.test(lowPrompt);
     if (!wantsJoin) return false;
     const asksHowOrIntent = /(kohom|kohomada|how|wenna|wenne|wenn|one|onne|ona|puluwanda|කොහොම|පුළුවන්|වෙන්න|ඕනෙ|ඕනි|ඔනී)/i.test(lowPrompt);
@@ -54,6 +61,8 @@ class AIService {
 
   _isScheduleTodayQuery(lowPrompt) {
     if (!lowPrompt) return false;
+    // EXCLUSION: If they mention payment, they are likely asking about fees for the class, not just the schedule
+    if (/(salli|fee|payment|gewan|gewanna|pay)/i.test(lowPrompt)) return false;
     if (/\b(today|ada|tomorrow|heta)\b/.test(lowPrompt) && /\b(class|clz|lesson|පන්ති)\b/.test(lowPrompt)) return true;
     if (/is there.*class|class.*thiyenawada|class.*thiyeda|class ekak thiyenawada/i.test(lowPrompt)) return true;
     return false;
@@ -110,6 +119,8 @@ class AIService {
   _isTutorInquiry(lowPrompt) {
     const low = lowPrompt || '';
     if (/(^|\s)(mage|my|mata)(\s|$)/.test(low) && /detail|vistara|profile/i.test(low)) return false;
+    // EXCLUSION: If they mention "class", they want class details, not just teacher's name
+    if (/(class|clz|panti|පන්ති)/i.test(low)) return false;
     return /sirge|sir ge|sir.*(detail|name|info|phone|num)|teacher|tutor|guru|institute/i.test(low) &&
       /detail|kiyn|kiyanna|name|info|monawada|innawada|phone|num/i.test(low);
   }
@@ -178,10 +189,14 @@ class AIService {
 
   _isPaymentDoneClaim(lowPrompt) {
     const low = lowPrompt || '';
-    if (/receipt.*(eww|yawan|yawann|denna|upload|photo)/i.test(low)) return false;
+    // EXCLUSION: Tech issues or negative phrases
+    const hasProblem = /(bane|bahe|baha|baa|amarui|wada n|error|awul|awl|awlak|බෑ|බැහැ|අමාරුයි|වැඩ නෑ)/i.test(low);
+    if (hasProblem) return false;
+    if (/receipt.*(yawan|yawann|denna|upload|photo)/i.test(low)) return false;
     if (/(karanna|danna|gewanna|kohomada|one)/i.test(low)) return false;
     return /(mama|mage|me|mata).*(payment|salli|fee).*(kara|damma|un|kale|kare)|payment.*(kara|done|damma|kare)/i.test(low) ||
-      /(salli|fee).*(damma|kara|un)/i.test(low);
+      /(salli|fee).*(damma|kara|un)/i.test(low) ||
+      /receipt.*(ewwa|damma)/i.test(low);
   }
 
   _isReceiptWillSend(lowPrompt) {
@@ -330,11 +345,12 @@ You are a natural Sri Lankan class admin chatting through WhatsApp. Warm, fast, 
 - Name: ${tutorContext.tutor?.institute_name || 'class'} Admin.
 - Tutor Name: ${tutorContext.settings?.tutor_name || 'Sir'}
 - STRICT RULE: ONLY use facts provided in the FAQ/SOP/Context. NEVER hallucinate.
-- STYLE: Use natural, chatty Singlish/Sinhala mixed.
+- LANGUAGE RULE: MUST REPLY IN SINGLISH OR SINHALA ONLY. If the user types in Singlish (English letters), reply in Singlish. If the user types in Sinhala letters, reply in Sinhala. NEVER reply in English.
 
 ==================================================
 TONE & STYLE RULES
 ==================================================
+- LANGUAGE STRICTNESS: NEVER reply in English! Always match the user's script (Singlish for English letters, Sinhala for Sinhala letters). Even if the Knowledge Base is in Sinhala, respond in Singlish if the user asks in Singlish.
 - Keep replies SHORT. Maximum 25 words unless explaining schedules/payments.
 - Maximum ONE emoji per reply. Use only: 😊 ✅ 🙌 👍
 - Do NOT repeat identical sentence structures. Vary greetings, confirmations, questions.
@@ -561,6 +577,23 @@ Return STRICT JSON ONLY:
         };
       }
 
+      const THIRD_PARTY_KEYWORDS = ['yaluwekw', 'yaluwaw', 'yaluwa', 'yaluw', 'wena kenekk', 'aluth kenekk', 'brother', 'sister', 'akka', 'malli', 'nangi', 'aiya', 'දොස්ත', 'යාලුව', 'අයියා', 'නංගි', 'මල්ලි'];
+      const isThirdPartyReg = THIRD_PARTY_KEYWORDS.some(k => lowPrompt.includes(k)) &&
+        /(add|register|join|regist|one|onne|ona)/i.test(lowPrompt);
+      if (isThirdPartyReg) {
+        return {
+          text: 'වෙන කෙනෙක්ව register කරන්න නම්, එයාගේ whatsapp number එකෙන් message එකක් දාන්න කියන්න',
+          intent: 'OTHER',
+          action: 'RESPOND',
+          data: {}
+        };
+      }
+
+      const COMPLAINT_WORDS = ['gewanna ba', 'salli na', 'amaruy', 'hadala denna', 'visadala denna', 'kiyala denna', 'ayin', 'drop', 'remove', 'kick'];
+      const isComplaint = COMPLAINT_WORDS.some(k => lowPrompt.includes(k)) ||
+        (['complain', 'aulak', 'awul'].some(k => lowPrompt.includes(k)) && !['na', 'ne', 'naha'].some(k => lowPrompt.includes(k)));
+      if (isComplaint) return { text: 'මම මේ පණිවිඩය Sir ට යැව්වා 😊 Sir ඉක්මනටම ඔයාට message එකක් යවයි.', intent: 'COMPLAIN', command: 'ESCALATE', action: 'ESCALATE', data: {} };
+
       if (this._isJoinInquiry(lowPrompt, hasRegistrationPattern)) {
         if (this._hasCompleteRegistration(studentContext)) {
           return {
@@ -636,18 +669,6 @@ Return STRICT JSON ONLY:
         };
       }
 
-      const THIRD_PARTY_KEYWORDS = ['yaluwekw', 'yaluwaw', 'yaluwa', 'yaluw', 'wena kenekk', 'aluth kenekk', 'brother', 'sister', 'akka', 'malli', 'nangi', 'aiya', 'දොස්ත', 'යාලුව', 'අයියා', 'නංගි', 'මල්ලි'];
-      const isThirdPartyReg = THIRD_PARTY_KEYWORDS.some(k => lowPrompt.includes(k)) &&
-        /(add|register|join|regist|one|onne|ona)/i.test(lowPrompt);
-      if (isThirdPartyReg) {
-        return {
-          text: 'වෙන කෙනෙක්ව register කරන්න නම්, එයාගේ whatsapp number එකෙන් message එකක් දාන්න කියන්න',
-          intent: 'OTHER',
-          action: 'RESPOND',
-          data: {}
-        };
-      }
-
       const SCHEDULE_DIRECT = ['schedule', 'timetable', 'time table', 'පන්ති කාලසටහන', 'කාලසටහන'];
 
       const SCHEDULE_TIME = ['time', 'kawadada', 'keeyatada', 'keeyatda', 'thiyenne', 'thiyed', 'thiyen', 'thiyenawa', 'thiyenawada', 'welawa', 'welawada', 'dawasa', 'end', 'start', 'පන්ති', 'කවදද', 'වේලාව', 'කීයද', 'කීයටද'];
@@ -667,7 +688,7 @@ Return STRICT JSON ONLY:
         }
       }
 
-      const isScheduleQuery = !isLocationQuery && !/record|link/i.test(lowPrompt) && (SCHEDULE_DIRECT.some(k => lowPrompt.includes(k)) ||
+      const isScheduleQuery = !isLocationQuery && !/record|link/i.test(lowPrompt) && !/(salli|fee|payment|gewan)/i.test(lowPrompt) && (SCHEDULE_DIRECT.some(k => lowPrompt.includes(k)) ||
         (SCHEDULE_TIME.some(k => lowPrompt.includes(k)) && (
           SCHEDULE_CLASS.some(k => lowPrompt.includes(k)) || /\b\d+\b/.test(lowPrompt) || !!(studentContext?.grade)
         )));
@@ -691,13 +712,10 @@ Return STRICT JSON ONLY:
         }
       }
 
-      const COMPLAINT_WORDS = ['gewanna ba', 'salli na', 'amaruy', 'hadala denna', 'visadala denna', 'kiyala denna', 'ayin', 'drop', 'remove', 'kick'];
-      const isComplaint = COMPLAINT_WORDS.some(k => lowPrompt.includes(k)) ||
-        (['complain', 'aulak', 'awul'].some(k => lowPrompt.includes(k)) && !['na', 'ne', 'naha'].some(k => lowPrompt.includes(k)));
-      if (isComplaint) return { text: 'මම මේ පණිවිඩය Sir ට යැව්වා 😊 Sir ඉක්මනටම ඔයාට message එකක් යවයි.', intent: 'COMPLAIN', command: 'ESCALATE', action: 'ESCALATE', data: {} };
 
       // Prevent already paid students from getting payment instructions again
-      const isPaymentIntent = /(payment|salli|fee|pay).*(karanna|karanne|danna|danne|gewanna|gewanne|kohomada|kohmada)/i.test(lowPrompt) || /(karanna|karanne|danna|danne|gewanna|gewanne|kohomada|kohmada).*(payment|salli|fee|pay)/i.test(lowPrompt);
+      const hasTechProblem = /(bane|bahe|baha|baa|amarui|wada n|error|awul|awl|awlak|බෑ|බැහැ|අමාරුයි|වැඩ නෑ)/i.test(lowPrompt);
+      const isPaymentIntent = !hasTechProblem && (/(payment|salli|fee|pay).*(karanna|karanne|danna|danne|gewanna|gewanne|gewanne kohomada|gewanne kohmada)/i.test(lowPrompt) || /(karanna|karanne|danna|danne|gewanna|gewanne|gewanne kohomada|gewanne kohmada).*(payment|salli|fee|pay)/i.test(lowPrompt));
       if (isPaymentIntent && studentContext.id) {
         const monthMatch = lowPrompt.match(/(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec|ජනවාරි|පෙබරවාරි|මාර්තු|අප්‍රේල්|මැයි|ජූනි|ජූලි|අගෝස්තු|සැප්තැම්බර්|ඔක්තෝබර්|නොවැම්බර්|දෙසැම්බර්)/i);
         if (monthMatch) {
@@ -719,8 +737,9 @@ Return STRICT JSON ONLY:
 
       // Check if student asks whether they are approved / added to class/group
       const isApprovalCheck = /(approve|approved|am i|am I|accepted|status.*(approve|added)|add welada|add wela|added|am i added|am I added|add karalada|add karanawada)|(class|group|clz|grp).*(add|join|welada|added|karanawada|karalada|wela|enroll|register)|(add|join|welada|added|karanawada|karalada|wela|enroll|register).*(class|group|clz|grp)/i;
+      const isThirdPartyQuery = THIRD_PARTY_KEYWORDS.some(k => lowPrompt.includes(k));
 
-      if (isApprovalCheck.test(lowPrompt) && !/left|remove|ayin|ain/i.test(lowPrompt)) {
+      if (isApprovalCheck.test(lowPrompt) && !/left|remove|ayin|ain/i.test(lowPrompt) && !isThirdPartyQuery && !/link|recording/i.test(lowPrompt)) {
         // 1. If student already active/paid/registered
         if (studentContext.studentStatus === 'active' || studentContext.paymentStatus === 'paid' || ['REGISTERED'].includes(studentContext.state)) {
           return {
