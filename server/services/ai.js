@@ -235,7 +235,8 @@ class AIService {
 
   _formatProfileReply(studentContext) {
     const s = studentContext;
-    return `ඔයාගේ විස්තර:\n• Name: ${s.name || '—'}\n• Grade: ${s.grade || '—'}\n• School: ${s.school || '—'}\n• Phone: ${s.phone || '—'}\n• Month: ${s.pending_month || '—'}\n• Address: ${s.address || '—'}`;
+    const monthLabel = s.paymentMonth || s.pending_month || '—';
+    return `ඔයාගේ විස්තර:\n• Name: ${s.name || '—'}\n• Grade: ${s.grade || '—'}\n• School: ${s.school || '—'}\n• Phone: ${s.phone || '—'}\n• Month: ${monthLabel}\n• Address: ${s.address || '—'}`;
   }
 
   _profileNotRegisteredReply() {
@@ -393,7 +394,7 @@ ${intentExamples.map(e => `Student: "${e.student_message}"\nAdmin: "${e.ideal_re
 ==================================================
 KNOWN STUDENT DATA
 ==================================================
-Current State: ${studentContext.state}
+Current State: ${studentContext.state} | Status: ${studentContext.studentStatus}
 Name: ${studentContext.name || 'Unknown'} | Grade: ${studentContext.grade || 'Unknown'} | School: ${studentContext.school || 'Unknown'} | Phone: ${studentContext.phone || 'Unknown'} | Month: ${studentContext.pending_month || 'Unknown'} | Address: ${studentContext.address || 'Unknown'}
 Pre-verified Phone (from this message): ${preVerifiedPhone ? `${preVerifiedPhone} — ACCEPT THIS as the valid phone number without question.` : 'NONE — validate strictly: must be exactly 10 digits starting with 0 (e.g. 0771234567). If invalid, ask again.'}
 
@@ -990,6 +991,18 @@ Return STRICT JSON ONLY:
         } else if (this._isProfileInquiry(lowPrompt) && (studentContext.name || studentContext.grade)) {
           result.reply = this._formatProfileReply(studentContext);
         }
+      }
+
+      if (result.action === 'REGISTER_STUDENT') {
+        result.extracted_data = {
+          ...(result.extracted_data || {}),
+          name: finalName,
+          grade: finalGrade,
+          school: finalSchool,
+          phone: finalPhone,
+          month: finalMonth,
+          address: finalAddress
+        };
       }
 
       if (result.new_state || result.extracted_data) {
