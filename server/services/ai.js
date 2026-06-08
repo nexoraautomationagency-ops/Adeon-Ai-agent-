@@ -792,7 +792,7 @@ Return STRICT JSON ONLY:
       if (!isNegative && (DELIVERY_WORDS.some(k => lowPrompt.includes(k)) || /\bawa\b/.test(lowPrompt)))
         return { text: 'Tute එක ලැබුණා කියලා confirm කරාට thanks. ඔයාට තවත් help එකක් ඕනේ නම් ඕනෙම වෙලාවක message කරන්න 👍', intent: 'CONFIRM_DELIVERY', command: 'CONFIRM_DELIVERY', action: 'CONFIRM_DELIVERY', data: {} };
 
-      const INFO_KEYWORDS = ['detail', 'fees', 'keeyada', 'payment info', 'class info', 'fee ekk', 'fee eka', 'class eka', 'fees eka', 'class details', 'bank details', 'vistar', 'vistara', 'keeyad', 'wisthara', 'panthi', 'panthiye', 'විස්තර', 'විස්තරය', 'විස්තරයක්', 'පන්ති'];
+      const INFO_KEYWORDS = ['detail', 'fees', 'keeyada', 'payment info', 'class info', 'fee ekk', 'fee eka', 'class eka', 'fees eka', 'class details', 'bank details', 'vistar', 'vistara', 'keeyad', 'wisthara', 'panthi', 'panthiye', 'විස්තර', 'විස්තරය', 'විස්තරයක්', 'පන්ති', 'about the class', 'about class', 'class gana', 'classes', 'more about'];
       let isDetailRequest = INFO_KEYWORDS.some(k => lowPrompt.includes(k));
 
       if (lowPrompt.includes('mage detail') || lowPrompt.includes('my detail') || lowPrompt.includes('profile') || lowPrompt.includes('mage vistara') || lowPrompt.includes('my profile')) {
