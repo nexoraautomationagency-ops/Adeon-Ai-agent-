@@ -63,6 +63,8 @@ class AIService {
     if (!lowPrompt) return false;
     // EXCLUSION: If they mention payment, they are likely asking about fees for the class, not just the schedule
     if (/(salli|fee|payment|gewan|gewanna|pay)/i.test(lowPrompt)) return false;
+    // EXCLUSION: If they ask for a specific day of the week, it's not a generic "today" query
+    if (/(monday|tuesday|wednesday|thursday|friday|saturday|sunday|sanduda|angaharuwada|badada|brahaspathinda|sikurada|senesurada|irida)/i.test(lowPrompt)) return false;
     if (/\b(today|ada|tomorrow|heta)\b/.test(lowPrompt) && /\b(class|clz|lesson|පන්ති)\b/.test(lowPrompt)) return true;
     if (/is there.*class|class.*thiyenawada|class.*thiyeda|class ekak thiyenawada/i.test(lowPrompt)) return true;
     return false;
@@ -674,7 +676,7 @@ Return STRICT JSON ONLY:
 
       const SCHEDULE_TIME = ['time', 'kawadada', 'keeyatada', 'keeyatda', 'keeytd', 'keeyata', 'patan', 'ganne', 'ganna', 'gannawada', 'patanganna', 'thiyenne', 'thiyed', 'thiyen', 'thiyenawa', 'thiyenawada', 'welawa', 'welawada', 'dawasa', 'end', 'start', 'පන්ති', 'කවදද', 'වේලාව', 'කීයද', 'කීයටද'];
       const SCHEDULE_CLASS = ['class', 'grade', 'theory', 'revision'];
-      const isLocationQuery = ['koheda', 'kohed', 'location', 'where', 'place', 'කොහෙද', 'kohetada', 'thana'].some(k => lowPrompt.includes(k));
+      const isLocationQuery = !/record|link|video|tute|pdf|paper/i.test(lowPrompt) && ['koheda', 'kohed', 'location', 'where', 'place', 'කොහෙද', 'kohetada', 'thana'].some(k => lowPrompt.includes(k));
 
       if (isLocationQuery) {
         const locationFaq = await dbGet("SELECT content FROM knowledge_base WHERE (content ILIKE '%location%' OR content ILIKE '%physical%') AND content ILIKE '%map%' AND tutor_id = ? LIMIT 1", [tutorId])
@@ -736,6 +738,10 @@ Return STRICT JSON ONLY:
         }
       }
 
+      // Class add/modify requests require manual Sir approval
+      const isClassModifyRequest = /class.*(remove|change|modify|drop|exchange|maru|wenas)|(tawa|aluth|wena|thawa).*class|class.*(tawa|aluth|wena|thawa)/i.test(lowPrompt);
+      if (isClassModifyRequest) return { text: 'Class add/remove කරන්න නම් Sir ට direct message එකක් දාන්න. Sir handle කරයි 😊', intent: 'OTHER', command: 'ESCALATE', action: 'ESCALATE', data: {} };
+
       // Check if student asks whether they are approved / added to class/group
       const isApprovalCheck = /(approve|approved|am i|am I|accepted|status.*(approve|added)|add welada|add wela|added|am i added|am I added|add karalada|add karanawada)|(class|group|clz|grp).*(add|join|welada|added|karanawada|karalada|wela|enroll|register)|(add|join|welada|added|karanawada|karalada|wela|enroll|register).*(class|group|clz|grp)/i;
       const isThirdPartyQuery = THIRD_PARTY_KEYWORDS.some(k => lowPrompt.includes(k));
@@ -780,16 +786,13 @@ Return STRICT JSON ONLY:
         };
       }
 
-      // Class add/modify requests require manual Sir approval
-      const isClassModifyRequest = /class.*(add|remove|change|modify|drop|exchange)|add.*class/i.test(lowPrompt);
-      if (isClassModifyRequest) return { text: 'Class add/remove කරන්න නම් Sir ට direct message එකක් දාන්න. Sir handle කරයි 😊', intent: 'OTHER', command: 'ESCALATE', action: 'ESCALATE', data: {} };
-
+      const isNegative = /na|ne|naha|nadda|baha|baa|epaa|epa/i.test(lowPrompt);
       const DELIVERY_WORDS = ['labuna', 'laba', 'hambuna', 'hambana', 'received', 'badu'];
-      if (DELIVERY_WORDS.some(k => lowPrompt.includes(k)) || /\bawa\b/.test(lowPrompt))
+      if (!isNegative && (DELIVERY_WORDS.some(k => lowPrompt.includes(k)) || /\bawa\b/.test(lowPrompt)))
         return { text: 'Tute එක ලැබුණා කියලා confirm කරාට thanks. ඔයාට තවත් help එකක් ඕනේ නම් ඕනෙම වෙලාවක message කරන්න 👍', intent: 'CONFIRM_DELIVERY', command: 'CONFIRM_DELIVERY', action: 'CONFIRM_DELIVERY', data: {} };
 
       const INFO_KEYWORDS = ['detail', 'fees', 'keeyada', 'payment info', 'class info', 'fee ekk', 'fee eka', 'class eka', 'fees eka', 'class details', 'bank details', 'vistar', 'vistara', 'keeyad', 'wisthara', 'panthi', 'panthiye', 'විස්තර', 'විස්තරය', 'විස්තරයක්', 'පන්ති'];
-      let isDetailRequest = INFO_KEYWORDS.some(k => lowPrompt.includes(k)) || (lowPrompt.includes('mata') && lowPrompt.includes('ona'));
+      let isDetailRequest = INFO_KEYWORDS.some(k => lowPrompt.includes(k));
 
       if (lowPrompt.includes('mage detail') || lowPrompt.includes('my detail') || lowPrompt.includes('profile') || lowPrompt.includes('mage vistara') || lowPrompt.includes('my profile')) {
         isDetailRequest = false;
