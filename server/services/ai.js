@@ -131,7 +131,8 @@ class AIService {
     return !!(s.name && s.grade && s.school && s.phone && s.pending_month && s.address);
   }
 
-  _normalizeConversationState(state, fallback = 'NEW_LEAD') {
+  _normalizeConversationState(state, currentStatus, fallback = 'NEW_LEAD') {
+    if (currentStatus === 'active') return 'WAITING_PAYMENT';
     if (!state || state === 'CHATTING') return fallback;
     if (state === 'REGISTERED') return 'WAITING_PAYMENT';
     const allowed = ['NEW_LEAD', 'COLLECTING_DETAILS', 'WAITING_PAYMENT'];
@@ -671,7 +672,7 @@ Return STRICT JSON ONLY:
 
       const SCHEDULE_DIRECT = ['schedule', 'timetable', 'time table', 'පන්ති කාලසටහන', 'කාලසටහන'];
 
-      const SCHEDULE_TIME = ['time', 'kawadada', 'keeyatada', 'keeyatda', 'thiyenne', 'thiyed', 'thiyen', 'thiyenawa', 'thiyenawada', 'welawa', 'welawada', 'dawasa', 'end', 'start', 'පන්ති', 'කවදද', 'වේලාව', 'කීයද', 'කීයටද'];
+      const SCHEDULE_TIME = ['time', 'kawadada', 'keeyatada', 'keeyatda', 'keeytd', 'keeyata', 'patan', 'ganne', 'ganna', 'gannawada', 'patanganna', 'thiyenne', 'thiyed', 'thiyen', 'thiyenawa', 'thiyenawada', 'welawa', 'welawada', 'dawasa', 'end', 'start', 'පන්ති', 'කවදද', 'වේලාව', 'කීයද', 'කීයටද'];
       const SCHEDULE_CLASS = ['class', 'grade', 'theory', 'revision'];
       const isLocationQuery = ['koheda', 'kohed', 'location', 'where', 'place', 'කොහෙද', 'kohetada', 'thana'].some(k => lowPrompt.includes(k));
 
@@ -897,12 +898,12 @@ Return STRICT JSON ONLY:
         lastBotMsg.content.includes('ඉතිරි')
       ));
 
-      const isCollecting = !isNonReg && (
+      const isAlreadyRegistered = ['REGISTERED', 'WAITING_PAYMENT'].includes(studentContext.state) || this._isStudentActive(studentContext);
+
+      const isCollecting = !isNonReg && !isAlreadyRegistered && (
         studentContext.state === 'COLLECTING_DETAILS' ||
         (lastBotAskedForDetails && hasNewDetailInMessage)
       );
-
-      const isAlreadyRegistered = ['REGISTERED', 'WAITING_PAYMENT'].includes(studentContext.state) || this._isStudentActive(studentContext);
 
       if (!hasAnyDetail && isCollecting) {
         result.action = 'RESPOND';
@@ -1185,6 +1186,7 @@ ${receiptInstruction}`;
       // Also update state and missing fields tracking
       const stateToSave = this._normalizeConversationState(
         result.new_state,
+        current?.status,
         result.action === 'REGISTER_STUDENT' ? 'WAITING_PAYMENT' : 'NEW_LEAD'
       );
       await dbRun(`
