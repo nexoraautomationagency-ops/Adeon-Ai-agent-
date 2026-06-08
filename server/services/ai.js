@@ -906,7 +906,9 @@ Return STRICT JSON ONLY:
 
       const isCollecting = !isNonReg && !isAlreadyRegistered && (
         studentContext.state === 'COLLECTING_DETAILS' ||
-        (lastBotAskedForDetails && hasNewDetailInMessage)
+        (lastBotAskedForDetails && hasNewDetailInMessage) ||
+        result.action === 'REGISTER_STUDENT' ||
+        result.intent === 'ADMISSION'
       );
 
       if (!hasAnyDetail && isCollecting) {
