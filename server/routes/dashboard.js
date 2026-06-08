@@ -105,6 +105,10 @@ router.put('/settings', async (req, res) => {
   if (typeof whatsappService.clearTutorCache === 'function') {
     whatsappService.clearTutorCache();
   }
+  const retrievalService = require('../services/retrieval');
+  if (typeof retrievalService.clearTutorCache === 'function') {
+    retrievalService.clearTutorCache(req.tutor.id);
+  }
 
   res.json({ settings: { ...settings, institute_name: tutor ? tutor.institute_name : '' } });
 });
