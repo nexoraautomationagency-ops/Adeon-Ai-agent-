@@ -107,7 +107,11 @@ class AIService {
       valueInMessage(d.address) ||
       valueInMessage(d.month) ||
       (d.grade && (/\bgrade\s*\d+/i.test(prompt) || /\b\d+\s*grade\b/i.test(prompt) || (/\b\d+\b/.test(low) && valueInMessage(d.grade)))) ||
-      (d.phone && /(?<![\d])0\d{9}(?![\d])/.test(prompt))
+      (d.phone && (() => {
+        const pDigits = prompt.replace(/\D/g, '');
+        const dDigits = String(d.phone).replace(/\D/g, '');
+        return dDigits.length >= 9 && pDigits.includes(dDigits.substring(dDigits.length - 9));
+      })())
     );
   }
 
@@ -172,8 +176,18 @@ class AIService {
     }
 
     if (data.phone && !preVerifiedPhone) {
-      const m = String(data.phone).match(/(?<!\d)(0\d{9})(?!\d)/);
-      if (!m || !prompt.includes(m[1])) delete data.phone;
+      const normalizationService = require('./normalization');
+      const normalizedPhone = normalizationService.normalizePhone(data.phone);
+      if (!normalizedPhone) {
+        delete data.phone;
+      } else {
+        const promptDigits = prompt.replace(/\D/g, '');
+        if (!promptDigits.includes(normalizedPhone.substring(1))) {
+           delete data.phone;
+        } else {
+           data.phone = normalizedPhone;
+        }
+      }
     }
 
     result.extracted_data = data;
