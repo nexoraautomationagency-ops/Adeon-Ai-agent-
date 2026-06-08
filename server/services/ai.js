@@ -847,10 +847,12 @@ Return STRICT JSON ONLY:
         receiptInstruction = "Registration එක සම්පූර්ණ කරන්න නම් payment එක කරලා receipt එක මෙතනට එවන්න 😊 ඊට පස්සේ ඔයාව official WhatsApp group එකට add කරන්නම්.";
       }
 
-      const phoneMatch = prompt.match(/(?<![\d])(0\d{9})(?![\d])/);
-      let preVerifiedPhone = phoneMatch ? phoneMatch[1] : null;
+      const phoneRegex = /(?:0|94|\+94)[-.\s]?\d{2}[-.\s]?\d{3}[-.\s]?\d{4}/;
+      const phoneMatch = prompt.match(phoneRegex);
+      const normalizationService = require('./normalization');
+      let preVerifiedPhone = phoneMatch ? normalizationService.normalizePhone(phoneMatch[0]) : null;
       const anyNumberMatch = prompt.match(/(\d{7,15})/);
-      const hasInvalidPhone = anyNumberMatch && !phoneMatch;
+      const hasInvalidPhone = anyNumberMatch && !preVerifiedPhone;
       if (hasRegistrationPattern && studentContext.state !== 'COLLECTING_DETAILS' && !this._hasCompleteRegistration(studentContext)) {
         studentContext.state = 'COLLECTING_DETAILS';
         await this._setCollectingDetails(studentContext.id);
@@ -885,8 +887,7 @@ Return STRICT JSON ONLY:
       const finalAddress = result.extracted_data?.address || studentContext.address;
 
       const rawPhone = String(result.extracted_data?.phone || studentContext.phone || '');
-      const validPhoneTest = rawPhone.match(/(?<!\d)(0\d{9})(?!\d)/);
-      const finalPhone = validPhoneTest ? validPhoneTest[1] : null;
+      let finalPhone = normalizationService.normalizePhone(rawPhone);
 
       const hasAnyDetail = !!(finalName || finalGrade || finalSchool || finalPhone || finalMonth || finalAddress);
       const isNonReg = this._isNonRegistrationInquiry(lowPrompt, result.intent);
@@ -944,8 +945,13 @@ Return STRICT JSON ONLY:
             missingPrompt = `හරි 😊 ඉතිරි විස්තර ටිකත් එවන්න: ${missing.join(', ')}`;
           }
 
-          if (result.intent !== 'ADMISSION' && result.reply && result.reply.length > 10) {
-            result.reply = result.reply + '\n\n' + missingPrompt;
+          if (result.reply && result.reply.length > 5) {
+            let cleanReply = result.reply.replace(/(හරි 😊 )?ඉතිරි විස්තර ටිකත් එවන්න.*/g, '').replace(/ඔයාගේ phone number එක වැරදියි වගේ.*/g, '').trim();
+            if (cleanReply) {
+              result.reply = cleanReply + '\n\n' + missingPrompt;
+            } else {
+              result.reply = missingPrompt;
+            }
           } else {
             result.reply = missingPrompt;
           }
